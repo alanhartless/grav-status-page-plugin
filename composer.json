@@ -1,0 +1,35 @@
+{
+    "name": "alanhartless/grav-plugin-status-page",
+    "type": "grav-plugin",
+    "description": "A public, Statuspage.io-style operational status page for Grav CMS.",
+    "license": "MIT",
+    "homepage": "https://github.com/alanhartless/grav-status-page-plugin",
+    "authors": [
+        {
+            "name": "Alan Hartless",
+            "homepage": "https://github.com/alanhartless"
+        }
+    ],
+    "require": {
+        "php": ">=8.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12"
+    },
+    "autoload": {
+        "psr-4": {
+            "Grav\\Plugin\\StatusPage\\": "classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Grav\\Plugin\\StatusPage\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

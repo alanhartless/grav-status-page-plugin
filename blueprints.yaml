@@ -1,0 +1,81 @@
+name: Status Page
+slug: status-page
+type: plugin
+version: 0.1.0
+description: A public, Statuspage.io-style operational status page (categories, incident announcements, and a rolling daily history strip) authored through Grav's Admin panel.
+icon: heartbeat
+author:
+  name: Alan Hartless
+  url: https://github.com/alanhartless
+homepage: https://github.com/alanhartless/grav-status-page-plugin
+bugs: https://github.com/alanhartless/grav-status-page-plugin/issues
+keywords: plugin, status, status page, uptime, incidents
+license: MIT
+
+dependencies:
+  - { name: grav, version: '>=2.0.0' }
+  - { name: flex-objects, version: '>=1.4.0' }
+
+form:
+  validation: strict
+  fields:
+    enabled:
+      type: toggle
+      label: PLUGIN_ADMIN.PLUGIN_STATUS
+      highlight: 1
+      default: 0
+      options:
+        1: PLUGIN_ADMIN.ENABLED
+        0: PLUGIN_ADMIN.DISABLED
+      validate:
+        type: bool
+
+    route:
+      type: text
+      label: Route
+      help: The URL path this plugin serves its public status page at.
+      default: /status
+      validate:
+        required: true
+
+    page_title:
+      type: text
+      label: Page title
+      help: Used for the page's <title> and on-page heading.
+      default: Status
+      validate:
+        required: true
+
+    window_days:
+      type: number
+      label: Window (days)
+      help: Length of the daily history strip, and the cutoff for how far back resolved announcements are shown.
+      default: 90
+      validate:
+        type: int
+        min: 1
+        required: true
+
+    uptime_partial_weight:
+      type: number
+      label: Partial-outage weight
+      help: 'How much a partial-outage day costs against uptime: 0 = doesn''t count, 1 = counts as a full outage day.'
+      default: 0.5
+      validate:
+        type: number
+        min: 0
+        max: 1
+        step: 0.05
+        required: true
+
+    base_template:
+      type: text
+      label: Base template
+      help: Optional theme Twig partial to extend for header/footer chrome. Leave empty to render a self-contained standalone page.
+      default: ''
+
+    timezone:
+      type: text
+      label: Timezone
+      help: Optional explicit PHP timezone identifier. Leave empty to use Grav's system.timezone, then UTC.
+      default: ''
