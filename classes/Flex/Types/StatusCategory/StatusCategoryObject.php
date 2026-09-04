@@ -34,12 +34,15 @@ class StatusCategoryObject extends FlexObject
      * (`storage.options.key: slug`), so on save the stored YAML content
      * never actually contains a `slug:` line -- it would be redundant with
      * the filename. That's fine for the stored data itself (Grav's own
-     * storage layer re-derives it from the filename on a raw load), but
-     * the Admin2 edit form asks for field values through
-     * `getFormValue()`, which reads plain element data and has no reason
-     * to know this field is special. Without this override, editing an
-     * existing category shows an empty Slug field instead of the
-     * category's actual machine name.
+     * storage layer re-derives it from the filename on a raw load), but it
+     * also means the field is simply absent from a Twig-rendered form's
+     * `getFormValue()` and from the raw element data `jsonSerialize()`
+     * returns. Admin2 gets an existing category's values from
+     * `jsonSerialize()` (via the Flex API's object-serialization
+     * endpoint), not `getFormValue()`, so both are overridden here for the
+     * two different consumers. Without this, editing an existing category
+     * shows an empty Slug field instead of the category's actual machine
+     * name.
      *
      * {@inheritdoc}
      */
@@ -50,6 +53,21 @@ class StatusCategoryObject extends FlexObject
         }
 
         return parent::getFormValue($name, $default, $separator);
+    }
+
+    /**
+     * {@inheritdoc}
+     * @see self::getFormValue() for why `slug` needs restoring here too.
+     */
+    public function jsonSerialize()
+    {
+        $elements = parent::jsonSerialize();
+
+        if ($this->exists()) {
+            $elements['slug'] = $this->getKey();
+        }
+
+        return $elements;
     }
 
     /**
