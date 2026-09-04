@@ -9,9 +9,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * CategoryOptions has three Grav-free pure helpers plus the actual
- * Grav-integrated `options()`/`selectOptions()` dynamic-callable entry
- * points:
+ * CategoryOptions has two Grav-free pure helpers plus the actual
+ * Grav-integrated `options()` dynamic-callable entry point:
  *
  *  - formatOptions(): turns raw category rows into the key=>title map a
  *    `select` field's data-options@ directive expects, ordered by `order`
@@ -20,14 +19,9 @@ use PHPUnit\Framework\TestCase;
  *    known key=>title map, silently dropping any key that no longer
  *    resolves -- deleting a referenced category must not fatal rendering,
  *    the dangling key is ignored, not an error.
- *  - toSelectOptions(): converts a key=>title map into the ordered
- *    {value, label} array Admin2's select field actually expects --
- *    confirmed by reading admin2.php's own onApiBlueprintResolved(),
- *    which documents exactly this shape for a resolved options list.
  *
- * Only the pure helpers are covered here; `options()`/`selectOptions()`
- * themselves require a live $grav['flex'] and are exercised by an
- * Admin2/CLI round-trip instead.
+ * Only the pure helpers are covered here; `options()` itself requires a
+ * live $grav['flex'] and is exercised by an Admin2/CLI round-trip instead.
  */
 final class CategoryOptionsTest extends TestCase
 {
@@ -81,40 +75,6 @@ final class CategoryOptionsTest extends TestCase
     public function format_options_returns_empty_array_for_no_categories(): void
     {
         self::assertSame([], CategoryOptions::formatOptions([]));
-    }
-
-    #[Test]
-    public function to_select_options_converts_a_key_title_map_to_value_label_pairs(): void
-    {
-        $options = CategoryOptions::toSelectOptions(['api' => 'API', 'web' => 'Web app']);
-
-        self::assertSame(
-            [
-                ['value' => 'api', 'label' => 'API'],
-                ['value' => 'web', 'label' => 'Web app'],
-            ],
-            $options
-        );
-    }
-
-    #[Test]
-    public function to_select_options_preserves_input_order(): void
-    {
-        $options = CategoryOptions::toSelectOptions(['web' => 'Web app', 'api' => 'API']);
-
-        self::assertSame(
-            [
-                ['value' => 'web', 'label' => 'Web app'],
-                ['value' => 'api', 'label' => 'API'],
-            ],
-            $options
-        );
-    }
-
-    #[Test]
-    public function to_select_options_returns_empty_array_for_no_categories(): void
-    {
-        self::assertSame([], CategoryOptions::toSelectOptions([]));
     }
 
     #[Test]

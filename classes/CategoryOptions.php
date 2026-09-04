@@ -11,12 +11,30 @@ use Grav\Common\Grav;
  * `categories` field, plus the dangling-category-key lookup helper used
  * when rendering an announcement's category list.
  *
- * `selectOptions()` is the actual `data-options@` entry point -- it
- * requires a live Grav instance with the `status-categories` Flex
- * directory registered, so it is exercised by an Admin2/Flex-API
- * round-trip rather than PHPUnit. `formatOptions()`, `resolveTitles()`,
- * and `toSelectOptions()` are pure functions with no Grav dependency and
- * carry the actual test coverage.
+ * `options()` is the actual `data-options@` entry point -- it requires a
+ * live Grav instance with the `status-categories` Flex directory registered,
+ * so it is exercised by an Admin2/Flex-API round-trip rather than PHPUnit.
+ * `formatOptions()` and `resolveTitles()` are pure functions with no Grav
+ * dependency and carry the actual test coverage.
+ *
+ * `options()` deliberately returns a plain `key => title` map, NOT an
+ * array of `{value, label}` objects -- confirmed by reading
+ * `BlueprintController::serializeFields()` (the `api` plugin) in full:
+ * after resolving a `data-options@` directive, it unconditionally
+ * converts whatever a `key => title` map into the `[{value, label}]`
+ * array itself (`normalizeOptionScalar()`, "Convert options from
+ * {key: label} object to [{value, label}] array"). Returning that array
+ * shape directly from here (tried and reverted) makes that conversion
+ * step run a *second* time over already-converted data, treating each
+ * `{value, label}` pair as a scalar label to stringify -- which PHP does
+ * via array-to-string conversion, a warning this environment's error
+ * handler escalates into a thrown exception, taking down the entire
+ * blueprint fetch for both the add and edit forms ("Failed to load
+ * blueprint for 'status-announcements'"). A comment in `admin2.php`
+ * about needing that array shape turned out to describe a different,
+ * unrelated code path (fields admin2 injects directly into the `account`
+ * blueprint, which bypass `serializeFields()` entirely) -- not the
+ * general dynamic-options pipeline this field actually goes through.
  *
  * Registered as the sole allowed dynamic callable via
  * Blueprint::addAllowedDynamicCallable() in
@@ -26,10 +44,7 @@ use Grav\Common\Grav;
 final class CategoryOptions
 {
     /**
-     * @return array<string, string> key => title -- the shape every other
-     *   internal consumer of this data needs (normalizeToKeys(),
-     *   resolveTitles()). NOT the shape to hand to Admin2 directly for
-     *   rendering -- see selectOptions() for why.
+     * @return array<string, string> key => title, ready for a `select` field's options.
      */
     public static function options(): array
     {
@@ -50,48 +65,6 @@ final class CategoryOptions
         }
 
         return self::formatOptions($categories);
-    }
-
-    /**
-     * The actual `data-options@` entry point for the `categories` field.
-     * Root cause, confirmed by reading `admin2.php`'s own
-     * `onApiBlueprintResolved()`: Admin2's select field expects `options`
-     * as an ordered array of `{value, label}` objects -- admin2's own
-     * comment there says so explicitly ("emit the post-serialization
-     * shape -- options as an ordered array of {value, label} objects
-     * rather than the YAML-blueprint map form"). A `data-options@`
-     * callable returning a plain `key => title` map (this class's
-     * `options()`, matching Grav core's own documented convention, e.g.
-     * `UserGroupObject::groupNames()`) produces exactly the wrong shape
-     * for Admin2's client to resolve a label from an already-selected
-     * value against -- explaining both confirmed symptoms: the dropdown
-     * list rendering by coincidence (a plain object still iterates into
-     * readable entries) while resolving a stored value's label on edit
-     * silently fails (nothing there to `.find(o => o.value === x)`
-     * against).
-     *
-     * @return list<array{value: string, label: string}>
-     */
-    public static function selectOptions(): array
-    {
-        return self::toSelectOptions(self::options());
-    }
-
-    /**
-     * Pure: converts a key => title map into Admin2's expected
-     * `{value, label}` array shape.
-     *
-     * @param array<string, string> $keyTitleMap
-     * @return list<array{value: string, label: string}>
-     */
-    public static function toSelectOptions(array $keyTitleMap): array
-    {
-        $options = [];
-        foreach ($keyTitleMap as $key => $title) {
-            $options[] = ['value' => (string) $key, 'label' => (string) $title];
-        }
-
-        return $options;
     }
 
     /**

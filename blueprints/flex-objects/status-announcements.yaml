@@ -129,19 +129,34 @@ form:
       size: large
       label: Categories
       classes: fancy
-      # Root cause of a real bug, confirmed by reading admin2.php's own
-      # source: Admin2's select field expects `options` as an ordered array
-      # of `{value, label}` objects, not the `key => title` map Grav core's
-      # own documented data-options@ convention produces (e.g.
-      # UserGroupObject::groupNames()). The wrong shape happened to still
-      # produce a readable dropdown list, but silently broke resolving an
-      # already-selected value's label on edit -- see
-      # CategoryOptions::selectOptions() for the full finding and the fix.
+      # KNOWN COSMETIC ISSUE, TRIED AND CONFIRMED NOT THE CAUSE: an existing
+      # announcement's selected-category chips show the raw key instead of
+      # the resolved title on edit, even though the stored value, the
+      # dropdown's own labels, and a freshly-picked chip in the same
+      # session are all correct.
+      #  1. Removing `classes: fancy` had zero visible effect on a live
+      #     install with the change confirmed deployed.
+      #  2. Flipping `options()`'s map to title => key made display and
+      #     persistence consistent, but consistently wrong (raw key
+      #     everywhere) -- worse than the status quo.
+      #  3. Returning `options()` as an array of `{value, label}` objects
+      #     directly (instead of a `key => title` map) broke creating AND
+      #     editing entirely ("Failed to load blueprint"): confirmed by
+      #     reading `BlueprintController::serializeFields()` in full that it
+      #     *already* converts a resolved `key => title` map into that exact
+      #     array shape itself, right after resolving `data-options@`.
+      #     Handing it the array shape directly makes that conversion run
+      #     twice, stringifying each `{value, label}` pair as a scalar via
+      #     PHP's array-to-string conversion -- a warning this environment's
+      #     error handler escalates into a fatal exception. See the
+      #     docblock on `CategoryOptions::options()` for the full finding.
+      # `CategoryOptions::normalizeToKeys()` guarantees correct persistence
+      # regardless of what the form happens to display.
       # Dynamic option provider -- registered via
       # Blueprint::addAllowedDynamicCallable() in
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
       # callable allowlist (GHSA-fj2p-qj2f-74v5) silently returns no options.
-      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::selectOptions'
+      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::options'
       # `commalist` (a comma-separated-string validator, meant for a plain
       # text/tag field) was the wrong type for a keyed multi-select and is
       # the confirmed root cause of a real bug: submitted through Admin2,
