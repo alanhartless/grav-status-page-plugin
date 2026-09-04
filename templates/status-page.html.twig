@@ -1,0 +1,16 @@
+{#
+  The public status page. Extends a configurable host-theme base template
+  (plugins.status-page.base_template) for header/footer
+  chrome, and degrades to this plugin's own self-contained standalone
+  layout when that config is empty -- the shipped default -- so the plugin
+  renders on any Grav site with no theme coupling.
+
+  Bracket notation on `plugins['status-page']` (rather than a dotted
+  `plugins.status-page`) is required: Twig's `.` operator would otherwise
+  parse the hyphen in the plugin slug as subtraction.
+#}
+{% extends config.plugins['status-page'].base_template ?: 'partials/standalone-base.html.twig' %}
+
+{% block content %}
+    {% include 'partials/status-content.html.twig' %}
+{% endblock %}

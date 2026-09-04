@@ -1,0 +1,20 @@
+{#
+  Fully self-contained fallback layout, used when
+  plugins.status-page.base_template is empty (the shipped default). No
+  theme coupling: no theme partials, no theme CSS, nothing beyond this
+  plugin's own stylesheet. Defines the same `content` block a host theme's
+  own base template is expected to define, so status-page.html.twig can
+  `{% extends %}` either one interchangeably.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ status.page_title }}</title>
+    {{ assets.css()|raw }}
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
