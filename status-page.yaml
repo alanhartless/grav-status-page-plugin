@@ -1,0 +1,27 @@
+enabled: true
+
+# The URL path this plugin serves its public status page at.
+route: /status
+
+# <title> and on-page heading text. Not assumed to be any particular
+# product's name -- set this to whatever your site calls itself.
+page_title: Status
+
+# Length, in days, of the daily history strip and the cutoff for how far
+# back resolved announcements are shown.
+window_days: 90
+
+# How much a partial-outage day costs against the uptime percentage.
+# 0 = a partial-outage day doesn't count against uptime at all.
+# 1 = a partial-outage day counts exactly the same as a full outage day.
+uptime_partial_weight: 0.5
+
+# Optional: the name of a theme Twig partial (e.g. "partials/base.html.twig")
+# to extend for page header/footer chrome. Leave empty to render a fully
+# self-contained standalone page with no theme coupling.
+base_template: ''
+
+# Optional: an explicit PHP timezone identifier (e.g. "America/New_York")
+# used to decide which calendar day an incident is attributed to. Leave
+# empty to fall back to Grav's own system.timezone, then UTC.
+timezone: ''

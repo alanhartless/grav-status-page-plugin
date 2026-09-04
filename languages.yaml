@@ -1,0 +1,4 @@
+en:
+  PLUGIN_STATUS_PAGE:
+    ALL_OPERATIONAL: All systems operational
+    NOT_OPERATIONAL: Some systems are experiencing issues
