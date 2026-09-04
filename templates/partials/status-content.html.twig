@@ -1,0 +1,64 @@
+{#
+  The status page's actual content, shared by both the standalone fallback
+  layout and any host-theme base template. Page structure, top to bottom
+  (ISSUE-205.4 AC): overall banner, active/watching announcements, each
+  category with its strip and uptime, then resolved announcements from the
+  last window_days days, newest first.
+#}
+<main class="status-page">
+    <h1 class="status-page__title">{{ status.page_title }}</h1>
+
+    <div class="status-page__banner status-page__banner--{{ status.banner }}" role="status">
+        {% if status.banner == 'operational' %}
+            All systems operational.
+        {% elseif status.banner == 'partial-outage' %}
+            Some systems are experiencing a partial outage.
+        {% else %}
+            Some systems are experiencing an outage.
+        {% endif %}
+    </div>
+
+    {% if status.active_watching is not empty %}
+        <section class="status-page__section status-page__section--incidents" aria-label="Active incidents">
+            {% for announcement in status.active_watching %}
+                {% include 'partials/status-announcement.html.twig' with { announcement: announcement } %}
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <section class="status-page__section status-page__section--categories" aria-label="Service categories">
+        {% if status.categories is empty %}
+            <p class="status-page__empty">No status categories have been configured yet.</p>
+        {% else %}
+            {% for category in status.categories %}
+                <article class="status-page__category">
+                    <div class="status-page__category-header">
+                        <h2 class="status-page__category-title">{{ category.title }}</h2>
+                        <span class="status-page__category-level status-page__category-level--{{ category.current }}">
+                            {{ category.current|replace({'-': ' '})|capitalize }}
+                        </span>
+                    </div>
+
+                    {% if category.description %}
+                        <p class="status-page__category-description">{{ category.description }}</p>
+                    {% endif %}
+
+                    {% include 'partials/status-strip.html.twig' with { days: category.days, category_title: category.title } %}
+
+                    <p class="status-page__uptime">{{ (category.uptime * 100)|round(2) }}% uptime over the last {{ status.window_days }} days.</p>
+                </article>
+            {% endfor %}
+        {% endif %}
+    </section>
+
+    <section class="status-page__section status-page__section--history" aria-label="Past incidents">
+        <h2 class="status-page__section-title">Past incidents</h2>
+        {% if status.resolved is empty %}
+            <p class="status-page__empty">No incidents in the last {{ status.window_days }} days.</p>
+        {% else %}
+            {% for announcement in status.resolved %}
+                {% include 'partials/status-announcement.html.twig' with { announcement: announcement } %}
+            {% endfor %}
+        {% endif %}
+    </section>
+</main>

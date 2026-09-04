@@ -1,0 +1,20 @@
+{#
+  The N-day history strip (ISSUE-205.4 AC): window_days CSS-flex segments,
+  each carrying its own accessible name "<date>: <level>", plus a separate
+  visually-hidden summary so the data has a path that does not depend on a
+  screen reader announcing each of up to hundreds of individual segments.
+  No JS charting library -- these are plain <div>s (implementation notes).
+#}
+<div class="status-strip" role="img" aria-label="{{ days|length }}-day history for {{ category_title }}">
+    {% for day in days %}
+        <div class="status-strip__day status-strip__day--{{ day.level }}"
+             role="img"
+             aria-label="{{ day.date }}: {{ day.level|replace({'-': ' '}) }}"
+             title="{{ day.date }}: {{ day.level|replace({'-': ' '}) }}"></div>
+    {% endfor %}
+</div>
+<ul class="status-page__visually-hidden status-strip__summary">
+    {% for day in days %}
+        <li>{{ day.date }}: {{ day.level|replace({'-': ' '}) }}</li>
+    {% endfor %}
+</ul>

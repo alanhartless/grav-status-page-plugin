@@ -1,0 +1,38 @@
+{#
+  A single announcement (active/watching or resolved). `announcement` is a
+  real StatusAnnouncementObject -- `getCategoryTitles()` already drops any
+  dangling category reference silently (ISSUE-205.2), so this template never
+  needs to guard against a deleted category itself.
+
+  Body rendering: Grav's own core `|markdown` Twig filter (`is_safe: html`,
+  not sanitizing) turns the authored Markdown into HTML, then this plugin's
+  `status_sanitize_html` filter (also `is_safe: html`) runs it through
+  rhukster/dom-sanitizer before it reaches the page (ISSUE-205.4 AC: a
+  `<script>` tag in a body must not execute).
+#}
+<article class="status-announcement status-announcement--{{ announcement.state }} status-announcement--{{ announcement.severity }}">
+    <header class="status-announcement__header">
+        <h3 class="status-announcement__title">{{ announcement.title }}</h3>
+        <span class="status-announcement__state status-announcement__state--{{ announcement.state }}">
+            {{ announcement.state|capitalize }}
+        </span>
+    </header>
+
+    {% if announcement.categoryTitles is not empty %}
+        <p class="status-announcement__categories">{{ announcement.categoryTitles|join(', ') }}</p>
+    {% endif %}
+
+    <p class="status-announcement__dates">
+        {% if announcement.ended_at %}
+            {{ announcement.started_at|date('M j, Y g:ia') }} to {{ announcement.ended_at|date('M j, Y g:ia') }}
+        {% else %}
+            Started {{ announcement.started_at|date('M j, Y g:ia') }}
+        {% endif %}
+    </p>
+
+    {% if announcement.body %}
+        <div class="status-announcement__body">
+            {{ announcement.body|markdown|status_sanitize_html }}
+        </div>
+    {% endif %}
+</article>
