@@ -208,4 +208,60 @@ final class AnnouncementSectionsTest extends TestCase
             AnnouncementSections::resolvedWithinWindowKeys($keyed, $today, $laTimezone, 1)
         );
     }
+
+    // -- Malformed input resilience (ISSUE-205.5 review): status-announcements
+    // is hand-editable YAML on disk, so a single unparseable started_at/
+    // ended_at must not crash either section for every other announcement. --
+
+    #[Test]
+    public function active_and_watching_does_not_throw_on_an_unparseable_started_at(): void
+    {
+        $keyed = [
+            'broken' => $this->announcement(['state' => 'active', 'started_at' => 'not-a-real-date']),
+            'fine' => $this->announcement(['state' => 'watching', 'started_at' => '2026-09-03 00:00:00']),
+        ];
+
+        $keys = AnnouncementSections::activeAndWatchingKeys($keyed);
+
+        sort($keys);
+        self::assertSame(['broken', 'fine'], $keys);
+    }
+
+    #[Test]
+    public function resolved_within_window_excludes_an_announcement_with_an_unparseable_started_at_instead_of_throwing(): void
+    {
+        $keyed = [
+            'broken' => $this->announcement([
+                'state' => 'resolved',
+                'started_at' => 'not-a-real-date',
+                'ended_at' => '2026-09-02 00:00:00',
+            ]),
+            'fine' => $this->announcement([
+                'state' => 'resolved',
+                'started_at' => '2026-09-02 00:00:00',
+                'ended_at' => '2026-09-03 00:00:00',
+            ]),
+        ];
+
+        $keys = AnnouncementSections::resolvedWithinWindowKeys($keyed, $this->today(), $this->tz(), 90);
+
+        self::assertSame(['fine'], $keys);
+    }
+
+    #[Test]
+    public function resolved_within_window_excludes_an_announcement_with_an_unparseable_ended_at_instead_of_throwing(): void
+    {
+        $keyed = [
+            'broken' => $this->announcement([
+                'state' => 'resolved',
+                'started_at' => '2026-09-01 00:00:00',
+                'ended_at' => 'not-a-real-date',
+            ]),
+        ];
+
+        self::assertSame(
+            [],
+            AnnouncementSections::resolvedWithinWindowKeys($keyed, $this->today(), $this->tz(), 90)
+        );
+    }
 }

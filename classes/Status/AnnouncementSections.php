@@ -67,7 +67,16 @@ final class AnnouncementSections
                 continue;
             }
 
-            [, $end] = StatusProjector::activeInterval($announcement, $now, $timezone);
+            // Same hand-editable-YAML defense as StatusProjector::project():
+            // an unparseable started_at/ended_at must not crash this section
+            // for every other resolved announcement (ISSUE-205.5 review). The
+            // record's placement in the window can't be determined, so it is
+            // excluded rather than guessed at.
+            try {
+                [, $end] = StatusProjector::activeInterval($announcement, $now, $timezone);
+            } catch (\Throwable $exception) {
+                continue;
+            }
 
             if ($end >= $windowStart) {
                 $matches[$key] = $end;
@@ -85,9 +94,21 @@ final class AnnouncementSections
     {
         $normalized = [];
         foreach ($keyedMoments as $key => $moment) {
-            $normalized[$key] = $moment instanceof DateTimeImmutable
-                ? $moment
-                : self::parse($moment);
+            if ($moment instanceof DateTimeImmutable) {
+                $normalized[$key] = $moment;
+                continue;
+            }
+
+            // An active/watching announcement is currently impacting users --
+            // it must still be shown even if its started_at is unparseable
+            // hand-edited YAML (ISSUE-205.5 review). It can't be placed
+            // correctly in the newest-first order, so it sorts as the oldest
+            // entry (the epoch) rather than crashing the whole section.
+            try {
+                $normalized[$key] = self::parse($moment);
+            } catch (\Throwable $exception) {
+                $normalized[$key] = new DateTimeImmutable('@0');
+            }
         }
 
         uasort($normalized, static fn(DateTimeImmutable $a, DateTimeImmutable $b): int => $b <=> $a);
