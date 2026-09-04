@@ -198,7 +198,25 @@
   color: var(--status-background);
 }
 
-.status-announcement__categories,
+.status-announcement__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0.35rem 0;
+  padding: 0;
+}
+
+.status-announcement__category-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--status-background);
+  color: var(--status-muted);
+  border: 1px solid var(--status-border);
+}
+
 .status-announcement__dates {
   color: var(--status-muted);
   font-size: 0.85rem;

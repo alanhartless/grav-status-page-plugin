@@ -19,7 +19,11 @@
     </header>
 
     {% if announcement.categoryTitles is not empty %}
-        <p class="status-announcement__categories">{{ announcement.categoryTitles|join(', ') }}</p>
+        <ul class="status-announcement__categories" aria-label="Affected categories">
+            {% for title in announcement.categoryTitles %}
+                <li class="status-announcement__category-badge">{{ title }}</li>
+            {% endfor %}
+        </ul>
     {% endif %}
 
     <p class="status-announcement__dates">
