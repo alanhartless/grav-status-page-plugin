@@ -690,6 +690,97 @@ final class StatusProjectorTest extends TestCase
 
         self::assertSame(1, $announcements->rewindCount());
     }
+
+    // -- Public windowStart()/activeInterval() (ISSUE-205.4): the rendering
+    // layer's "resolved announcements within the window" section must derive
+    // its cutoff from the exact same boundary the strip uses, not a second,
+    // independently-computed one. --
+
+    #[Test]
+    public function window_start_matches_the_left_edge_project_itself_uses(): void
+    {
+        $today = $this->today('2026-09-04 12:00:00');
+
+        $windowStart = StatusProjector::windowStart($today, $this->tz(), 5);
+
+        $projection = StatusProjector::project([], 'api', $today, $this->tz(), 5, 0.5);
+
+        self::assertSame($windowStart->format('Y-m-d'), $projection->days[0]['date']);
+    }
+
+    #[Test]
+    public function window_start_is_start_of_day_windowdays_minus_one_before_today(): void
+    {
+        $windowStart = StatusProjector::windowStart($this->today('2026-09-04 23:59:59'), $this->tz(), 1);
+
+        self::assertSame('2026-09-04', $windowStart->format('Y-m-d'));
+        self::assertSame('00:00:00', $windowStart->format('H:i:s'));
+    }
+
+    #[Test]
+    public function window_start_rejects_windowdays_less_than_one(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        StatusProjector::windowStart($this->today(), $this->tz(), 0);
+    }
+
+    #[Test]
+    public function window_start_respects_timezone_the_same_way_project_does(): void
+    {
+        // A UTC instant of 2026-09-05 02:00 is still 2026-09-04 in
+        // America/Los_Angeles -- the same DST/timezone case project() itself
+        // is pinned against.
+        $today = new DateTimeImmutable('2026-09-05 02:00:00', $this->tz());
+
+        $windowStart = StatusProjector::windowStart($today, $this->tz('America/Los_Angeles'), 1);
+
+        self::assertSame('2026-09-04', $windowStart->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function active_interval_for_active_state_runs_start_to_now(): void
+    {
+        $now = $this->today('2026-09-04 12:00:00');
+        $announcement = $this->announcement(['state' => 'active', 'started_at' => '2026-09-01 00:00:00', 'ended_at' => null]);
+
+        [$start, $end] = StatusProjector::activeInterval($announcement, $now, $this->tz());
+
+        self::assertSame('2026-09-01 00:00:00', $start->format('Y-m-d H:i:s'));
+        self::assertSame($now->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s'));
+    }
+
+    #[Test]
+    public function active_interval_for_resolved_state_ends_at_ended_at_when_present(): void
+    {
+        $now = $this->today('2026-09-04 12:00:00');
+        $announcement = $this->announcement([
+            'state' => 'resolved',
+            'started_at' => '2026-09-01 00:00:00',
+            'ended_at' => '2026-09-02 00:00:00',
+        ]);
+
+        [, $end] = StatusProjector::activeInterval($announcement, $now, $this->tz());
+
+        self::assertSame('2026-09-02 00:00:00', $end->format('Y-m-d H:i:s'));
+    }
+
+    #[Test]
+    public function active_interval_for_resolved_state_with_null_ended_at_ends_at_updated_at_never_now(): void
+    {
+        $now = $this->today('2026-09-04 12:00:00');
+        $announcement = $this->announcement([
+            'state' => 'resolved',
+            'started_at' => '2026-09-01 00:00:00',
+            'ended_at' => null,
+            'updated_at' => '2026-09-01 06:00:00',
+        ]);
+
+        [, $end] = StatusProjector::activeInterval($announcement, $now, $this->tz());
+
+        self::assertSame('2026-09-01 06:00:00', $end->format('Y-m-d H:i:s'));
+        self::assertNotSame($now->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s'));
+    }
 }
 
 /**

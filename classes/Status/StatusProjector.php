@@ -84,8 +84,7 @@ final class StatusProjector
         }
 
         $now = $today->setTimezone($timezone);
-        $todayStart = self::startOfDay($now);
-        $windowStart = $todayStart->modify('-' . ($windowDays - 1) . ' days');
+        $windowStart = self::windowStart($today, $timezone, $windowDays);
 
         /** @var list<int> $ranks Index 0 = windowStart's day, last index = today. */
         $ranks = array_fill(0, $windowDays, self::RANK_OPERATIONAL);
@@ -151,6 +150,26 @@ final class StatusProjector
     }
 
     /**
+     * The window's start moment (start-of-day, `$windowDays` before `$today`
+     * inclusive), computed in `$timezone`. Public so ISSUE-205.4's rendering
+     * layer can derive the "resolved announcements within the last
+     * `windowDays` days" section from the **exact same** window boundary the
+     * strip itself uses, rather than recomputing it independently (that AC
+     * is exactly why this was extracted from project() rather than
+     * duplicated at the call site).
+     */
+    public static function windowStart(DateTimeImmutable $today, DateTimeZone $timezone, int $windowDays): DateTimeImmutable
+    {
+        if ($windowDays < 1) {
+            throw new InvalidArgumentException('windowDays must be at least 1.');
+        }
+
+        $todayStart = self::startOfDay($today->setTimezone($timezone));
+
+        return $todayStart->modify('-' . ($windowDays - 1) . ' days');
+    }
+
+    /**
      * An announcement's active interval is [started_at, ended_at] (closed
      * both ends). Null ended_at means different things depending on state:
      *
@@ -160,10 +179,14 @@ final class StatusProjector
      *    mis-authored record with no ended_at would paint every day since
      *    red, forever.
      *
+     * Public so ISSUE-205.4's "resolved announcements from the last
+     * windowDays days" section applies the identical D9 open-ended rule
+     * used by the strip, instead of a second, potentially-diverging copy.
+     *
      * @param array<string, mixed> $announcement
      * @return array{0: DateTimeImmutable, 1: DateTimeImmutable} [start, end]
      */
-    private static function activeInterval(
+    public static function activeInterval(
         array $announcement,
         DateTimeImmutable $now,
         DateTimeZone $timezone
