@@ -98,4 +98,41 @@ class StatusAnnouncementObject extends FlexObject
 
         return CategoryOptions::resolveTitles($keys, CategoryOptions::options());
     }
+
+    /**
+     * Workaround for a confirmed Admin2 bug: its categories field resolves
+     * a selected chip's label via `optionsMap.get(storedValue) ?? storedValue`
+     * (`Yp()` in admin2's compiled bundle), and that lookup misses for an
+     * already-saved value even though the exact same map correctly labels
+     * the dropdown suggestions -- a timing/reactivity gap in when Admin2
+     * considers the options list ready, not something a blueprint can fix.
+     *
+     * The fallback (`?? storedValue`) means whatever raw value this method
+     * hands back is what actually gets shown. Presenting titles here (e.g.
+     * "Application") instead of keys ("application") makes that fallback
+     * display correctly regardless of the timing bug. This never touches
+     * how categories are actually stored or matched -- `getElements()`
+     * (used by storage) and the `categories` property Twig/StatusProjector
+     * read directly are untouched by this override, which only affects
+     * what `jsonSerialize()` returns; `FlexApiController::serializeObject()`
+     * is its one caller, and that's exactly the Admin2 API response this
+     * workaround targets. Whatever Admin2 then submits back on save (title
+     * or key) is already normalized to a real key by update()'s existing
+     * `CategoryOptions::normalizeToKeys()` call, so persistence is
+     * unaffected either way.
+     *
+     * {@inheritdoc}
+     */
+    public function jsonSerialize()
+    {
+        $elements = parent::jsonSerialize();
+
+        if (array_key_exists('categories', $elements)) {
+            $elements['categories'] = array_values(
+                CategoryOptions::resolveTitles((array) $elements['categories'], CategoryOptions::options())
+            );
+        }
+
+        return $elements;
+    }
 }
