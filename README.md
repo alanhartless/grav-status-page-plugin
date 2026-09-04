@@ -9,11 +9,11 @@ rolling daily history strip with an aggregate uptime percentage.
 Built entirely on Grav's file-based [Flex Objects](https://learn.getgrav.org/17/flex-objects)
 framework — no database required.
 
-**Status:** the Flex data model is in place -- operators can author
-categories and announcements through the Admin panel -- and the status
-computation (current status, daily history strip, uptime %) is implemented
-and exhaustively unit-tested (`classes/Status/StatusProjector.php`). The
-public page itself lands in a later release. See `CHANGELOG.md`.
+**Status:** the public page is live. Operators author categories and
+announcements through the Admin panel; the plugin computes each category's
+current status, daily history strip, and uptime % (exhaustively unit-tested,
+`classes/Status/StatusProjector.php`) and serves it at a plugin-provided
+route -- no page file to add, no theme required. See `CHANGELOG.md`.
 
 ## Requirements
 
@@ -96,6 +96,38 @@ Uptime over the configured window is:
 At the shipped defaults (`window_days: 90`, `uptime_partial_weight: 0.5`),
 a full outage day costs a full day of uptime and a partial-outage day costs
 half a day.
+
+## The public page
+
+Served at `route` (default `/status`) as a plugin-provided page -- no page
+file to create under `user/pages`, and no theme dependency. Page structure,
+top to bottom: an overall banner, active/watching announcements, each
+category with its current status, N-day strip, and uptime %, then resolved
+announcements from the last `window_days` days (newest first, older ones
+simply don't render -- there is no archive or pagination).
+
+**Overriding templates.** This plugin's own `templates/` folder registers
+three files: `status-page.html.twig` (the page shell), `partials/status-
+content.html.twig` (the actual content, reused by both layouts below), and
+the `partials/status-strip.html.twig` / `partials/status-announcement.html.twig`
+partials it includes. Grav's normal template-override rules apply: a theme
+(or another plugin loaded after this one) can ship a file at the same
+relative path under its own `templates/` folder to override any of them.
+
+**Header/footer chrome.** Set `base_template` to a Twig template name your
+theme already defines (e.g. `partials/base.html.twig`) that renders a
+`{% block content %}{% endblock %}` -- the status page extends it and fills
+that block. Leave `base_template` empty (the default) to render this
+plugin's own `partials/standalone-base.html.twig`, a minimal, fully
+self-contained `<html>` page with no theme dependency at all.
+
+**Colors.** The page's status colors are CSS custom properties with
+built-in fallbacks (`var(--status-operational, #2e7d32)`, `--status-
+partial-outage`, `--status-outage`, plus `--status-text`/`--status-muted`/
+`--status-border`/`--status-background`), all defined in this plugin's own
+`css/status-page.css`. A host theme overrides any of them the ordinary CSS
+way -- set the same custom property names in its own stylesheet, scoped as
+broadly or as narrowly as it likes.
 
 ## License
 

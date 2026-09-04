@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0
+
+- Add the public status page itself: a plugin-provided route
+  (`onPagesInitialized` + `Pages::addPage()`, no page file under
+  `user/pages`), Twig templates for the overall banner, active/watching
+  announcements, each category's N-day strip + uptime, and resolved
+  announcements from the last `window_days` days.
+- The created page disables Grav's page cache (`cache_enable: false`,
+  `never_cache_twig: true`) so the strip and announcement sections never
+  freeze on a stale cache.
+- Announcement bodies render through Grav's own Markdown pipeline, then a
+  new `status_sanitize_html` Twig filter (`rhukster/dom-sanitizer`) before
+  reaching the page.
+- Add `TimezoneResolver`, `OverallStatus`, `CategoryOrdering`, and
+  `AnnouncementSections` -- pure, unit-tested helpers behind the rendering
+  layer. `StatusProjector::windowStart()`/`activeInterval()` are now public
+  so the rendering layer's "resolved within the window" section reuses the
+  exact same window/interval computation the strip itself uses.
+- The template extends a configurable `base_template` and degrades to a
+  fully self-contained standalone layout when that config is empty. Colors
+  are CSS custom properties with built-in fallbacks; the plugin ships no
+  host-specific color values.
+
 ## 0.3.0
 
 - Add `StatusProjector`: pure, framework-free computation of a category's
