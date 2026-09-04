@@ -11,7 +11,8 @@
         }
     ],
     "require": {
-        "php": ">=8.3"
+        "php": ">=8.3",
+        "rhukster/dom-sanitizer": "^1.0.14"
     },
     "require-dev": {
         "phpunit/phpunit": "^12"
