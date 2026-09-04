@@ -128,7 +128,18 @@ form:
       multiple: true
       size: large
       label: Categories
-      classes: fancy
+      # EXPERIMENTAL: `classes: fancy` (a JS tag/chip picker) was removed
+      # because it displays a selected value's raw key instead of its
+      # resolved title when hydrating an existing announcement's already-
+      # stored categories -- confirmed live: chips read "application"
+      # instead of "Application" on edit, even though the underlying stored
+      # value and the dropdown's own option labels are both correct. A
+      # native multi-select has no separate "resolve key to label on
+      # hydration" step to get wrong -- the browser always shows an
+      # <option>'s text content regardless of whether it's preselected on
+      # load or picked interactively -- so this should sidestep the bug
+      # class entirely, at the cost of the nicer tag-picker UI. Revert to
+      # `classes: fancy` if this doesn't hold up under live testing.
       # Dynamic option provider -- registered via
       # Blueprint::addAllowedDynamicCallable() in
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
