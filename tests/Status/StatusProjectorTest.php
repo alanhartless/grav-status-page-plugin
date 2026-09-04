@@ -781,6 +781,55 @@ final class StatusProjectorTest extends TestCase
         self::assertSame('2026-09-01 06:00:00', $end->format('Y-m-d H:i:s'));
         self::assertNotSame($now->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s'));
     }
+
+    // -- Malformed input resilience (ISSUE-205.5 review): status-announcements
+    // is hand-editable YAML on disk (`user-data://flex-objects/...`), so a
+    // single record with an unparseable started_at/ended_at must not take
+    // down the public page for every category. The record is skipped -- it
+    // contributes nothing to the strip or uptime, same as if it didn't
+    // exist -- rather than the whole project() call throwing. --
+
+    #[Test]
+    public function project_ignores_an_announcement_with_an_unparseable_started_at_instead_of_throwing(): void
+    {
+        $announcements = [
+            $this->announcement([
+                'started_at' => 'not-a-real-date',
+                'ended_at' => null,
+            ]),
+            $this->announcement([
+                'started_at' => '2026-09-04 00:00:00',
+                'ended_at' => null,
+            ]),
+        ];
+
+        $projection = StatusProjector::project($announcements, 'api', $this->today(), $this->tz(), 3, 0.5);
+
+        self::assertSame('outage', $projection->current);
+        self::assertSame(
+            ['operational', 'operational', 'outage'],
+            array_column($projection->days, 'level')
+        );
+    }
+
+    #[Test]
+    public function project_ignores_an_announcement_with_an_unparseable_ended_at_instead_of_throwing(): void
+    {
+        $announcements = [
+            $this->announcement([
+                'started_at' => '2026-09-01 00:00:00',
+                'ended_at' => 'not-a-real-date',
+            ]),
+        ];
+
+        $projection = StatusProjector::project($announcements, 'api', $this->today(), $this->tz(), 3, 0.5);
+
+        self::assertSame(
+            ['operational', 'operational', 'operational'],
+            array_column($projection->days, 'level')
+        );
+        self::assertSame(1.0, $projection->uptime);
+    }
 }
 
 /**

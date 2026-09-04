@@ -104,7 +104,19 @@ final class StatusProjector
                 continue;
             }
 
-            [$start, $end] = self::activeInterval($announcement, $now, $timezone);
+            // status-announcements is hand-editable YAML on the persistent
+            // volume (`user-data://flex-objects/status-announcements`) --
+            // Admin2/the API already reject an unparseable started_at/
+            // ended_at (StatusAnnouncementValidator), but a directly-edited
+            // file can still contain one. One malformed record must not take
+            // the whole public page down for every category (ISSUE-205.5
+            // review); it is skipped instead, contributing nothing, same as
+            // if it did not exist.
+            try {
+                [$start, $end] = self::activeInterval($announcement, $now, $timezone);
+            } catch (\Throwable $exception) {
+                continue;
+            }
 
             $firstDayIndex = self::calendarDayIndex($windowStart, $start);
             $lastDayIndex = self::calendarDayIndex($windowStart, $end);
