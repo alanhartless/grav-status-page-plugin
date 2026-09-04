@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.0
+
+First tagged release. A scoped security + correctness review of the full
+tracked tree (blueprint permissions, Flex storage paths, the dynamic-callable
+allowlist, Twig auto-escaping/sanitization, and general correctness) found
+two robustness gaps, both fixed here:
+
+- `StatusProjector` and `AnnouncementSections` no longer crash the whole
+  public page when a single `status-announcements` record has an
+  unparseable `started_at`/`ended_at` (status-announcements is hand-editable
+  YAML on the persistent volume). The malformed record is skipped instead of
+  the exception propagating.
+- `window_days` gained an upper bound (`max: 3650`, in addition to the
+  existing `min: 1`) in the Admin Configuration blueprint, since it sizes an
+  in-memory array on every page render.
+
+No other findings. Blueprint `permissions:` blocks, the `user-data://`
+storage paths, the single `addAllowedDynamicCallable` registration, and the
+markdown/`status_sanitize_html` sanitization path were all confirmed correct
+as shipped in 0.1.0-0.4.0.
+
 ## 0.4.0
 
 - Add the public status page itself: a plugin-provided route
