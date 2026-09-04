@@ -128,18 +128,18 @@ form:
       multiple: true
       size: large
       label: Categories
-      # EXPERIMENTAL: `classes: fancy` (a JS tag/chip picker) was removed
-      # because it displays a selected value's raw key instead of its
-      # resolved title when hydrating an existing announcement's already-
-      # stored categories -- confirmed live: chips read "application"
-      # instead of "Application" on edit, even though the underlying stored
-      # value and the dropdown's own option labels are both correct. A
-      # native multi-select has no separate "resolve key to label on
-      # hydration" step to get wrong -- the browser always shows an
-      # <option>'s text content regardless of whether it's preselected on
-      # load or picked interactively -- so this should sidestep the bug
-      # class entirely, at the cost of the nicer tag-picker UI. Revert to
-      # `classes: fancy` if this doesn't hold up under live testing.
+      classes: fancy
+      # TRIED AND CONFIRMED NOT THE CAUSE: removing `classes: fancy`
+      # entirely (expecting Admin2 to fall back to a native multi-select)
+      # had zero visible effect on a live install with the change correctly
+      # deployed -- confirmed via the checked-out commit hash and the raw
+      # file content. This admin build's chip/tag rendering for
+      # `type: select, multiple: true` is not controlled by this class hint
+      # at all, so don't retry this exact experiment. Known, separate cosmetic
+      # issue this doesn't fix: an existing announcement's selected-category
+      # chips show the raw key instead of the resolved title on edit, even
+      # though the stored value, the dropdown's own labels, and a
+      # freshly-picked chip in the same session are all correct.
       # Dynamic option provider -- registered via
       # Blueprint::addAllowedDynamicCallable() in
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
