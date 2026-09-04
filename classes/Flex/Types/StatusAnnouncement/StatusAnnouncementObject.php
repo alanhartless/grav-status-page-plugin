@@ -39,7 +39,7 @@ class StatusAnnouncementObject extends FlexObject
      */
     public function update(array $data, array $files = [])
     {
-        $merged = array_replace($this->toArray(), $data);
+        $merged = $this->getBlueprint()->mergeData($this->getElements(), $data);
 
         $errors = StatusAnnouncementValidator::validate($merged);
         if ($errors) {

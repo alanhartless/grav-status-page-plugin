@@ -2,6 +2,7 @@
 
 namespace Grav\Plugin;
 
+use Composer\Autoload\ClassLoader;
 use Grav\Common\Data\Blueprint;
 use Grav\Common\Plugin;
 use Grav\Events\FlexRegisterEvent;
@@ -22,6 +23,20 @@ use Grav\Plugin\StatusPage\CategoryOptions;
 class StatusPagePlugin extends Plugin
 {
     /**
+     * Exposes this plugin's own `blueprints/` folder on the `blueprints://`
+     * stream (`Grav\Common\Plugins::setup()` only adds a plugin's blueprint
+     * path when it declares this feature -- without it,
+     * `blueprints://flex-objects/status-categories.yaml` resolves to
+     * nothing and Flex reports the blueprint file as missing). Same
+     * declaration `flex-objects` itself uses.
+     *
+     * @var array
+     */
+    public $features = [
+        'blueprints' => 100,
+    ];
+
+    /**
      * The sole `Class::method` dynamic-data provider this plugin uses for a
      * blueprint `data-options@` directive. Kept as one constant so it is
      * obvious at a glance that exactly one callable is registered -- a
@@ -38,6 +53,31 @@ class StatusPagePlugin extends Plugin
             'onPluginsInitialized' => ['onPluginsInitialized', 0],
             FlexRegisterEvent::class => ['onRegisterFlex', 0],
         ];
+    }
+
+    /**
+     * Registers a PSR-4 autoloader for this plugin's own `classes/` tree
+     * (`Grav\Plugin\StatusPage\` -> `classes/`, matching composer.json).
+     *
+     * `Grav\Common\Plugins::loadPlugin()` calls this automatically on every
+     * plugin that defines it -- see flex-objects' own `autoload()` for the
+     * same pattern. Deliberately does NOT `require __DIR__ . '/vendor/autoload.php'`
+     * the way flex-objects does: this plugin's composer.json has no runtime
+     * dependencies (only phpunit, dev-only), and `/vendor/` is gitignored, so
+     * nothing installs it in the production image. Registering the PSR-4
+     * mapping directly against a fresh ClassLoader needs no vendor/ directory
+     * at all -- `Composer\Autoload\ClassLoader` is already available process-
+     * wide via Grav core's own autoloader.
+     *
+     * @return ClassLoader
+     */
+    public function autoload(): ClassLoader
+    {
+        $loader = new ClassLoader();
+        $loader->addPsr4('Grav\\Plugin\\StatusPage\\', __DIR__ . '/classes');
+        $loader->register();
+
+        return $loader;
     }
 
     /**
