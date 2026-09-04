@@ -1,0 +1,152 @@
+title: Status Announcements
+description: Incident, maintenance, and informational posts shown on the public status page, scoped to one or more categories.
+type: flex-objects
+
+# Flex Configuration
+config:
+  # Administration Configuration
+  admin:
+    # Admin router
+    router:
+      path: '/status-announcements'
+
+    # Admin menu
+    menu:
+      list:
+        route: '/status-announcements'
+        title: Status Announcements
+        icon: fa-bullhorn
+        # Authorization to collection admin
+        authorize: ['admin.status-announcements.list', 'admin.super']
+        priority: 2
+
+    # Admin template type / folder
+    template: default
+
+    # Permissions -- flex-objects >= 1.4.3 denies by default without this block.
+    permissions:
+      admin.status-announcements:
+        type: crudl
+        label: Status Announcements
+      api.status-announcements:
+        type: crudl
+        label: Status Announcements API
+
+    # List view
+    list:
+      title: title
+      fields:
+        title:
+          link: edit
+        state:
+        severity:
+        started_at:
+        ended_at:
+
+    # Edit view
+    edit:
+      title:
+        template: "{{ object.title }}"
+
+    # Preview view
+    preview:
+      enabled: false
+
+  # Site Configuration
+  site:
+    hidden: true
+
+  # Data Configuration
+  data:
+    object: 'Grav\Plugin\StatusPage\Flex\Types\StatusAnnouncement\StatusAnnouncementObject'
+    collection: 'Grav\Plugin\StatusPage\Flex\Types\StatusAnnouncement\StatusAnnouncementCollection'
+    index: 'Grav\Plugin\StatusPage\Flex\Types\StatusAnnouncement\StatusAnnouncementIndex'
+    storage:
+      # One YAML file per announcement -- readable diffs, cheap to hand-edit.
+      class: 'Grav\Framework\Flex\Storage\FileStorage'
+      options:
+        formatter:
+          class: 'Grav\Framework\File\Formatter\YamlFormatter'
+        # CRITICAL: user-data:// is the one part of Grav's plugin-adjacent
+        # surface that is both persistent and not seed-shadowed on the
+        # production volume. plugin:// would lose all incident history on
+        # every redeploy, silently. Pinned by tests/FlexStoragePathTest.php.
+        folder: 'user-data://flex-objects/status-announcements'
+        pattern: '{FOLDER}/{KEY}{EXT}'
+        indexed: true
+        case_sensitive: false
+    search:
+      options:
+        contains: 1
+      fields:
+        - title
+        - state
+        - severity
+
+# Regular form definition
+form:
+  validation: strict
+
+  fields:
+    title:
+      type: text
+      label: Title
+      validate:
+        required: true
+
+    body:
+      type: markdown
+      label: Body
+      validate:
+        required: false
+
+    state:
+      type: select
+      label: State
+      default: active
+      options:
+        active: Active
+        watching: Watching
+        resolved: Resolved
+      validate:
+        required: true
+
+    severity:
+      type: select
+      label: Severity
+      help: 'A maintenance or informational post should use "None" -- it is the default and colors no day on the history strip. Only Partial outage / Outage feed the uptime calculation.'
+      default: none
+      options:
+        none: None
+        partial-outage: Partial outage
+        outage: Outage
+      validate:
+        required: true
+
+    categories:
+      type: select
+      multiple: true
+      size: large
+      label: Categories
+      classes: fancy
+      # Dynamic option provider -- registered via
+      # Blueprint::addAllowedDynamicCallable() in
+      # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
+      # callable allowlist (GHSA-fj2p-qj2f-74v5) silently returns no options.
+      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::options'
+      validate:
+        required: true
+        type: commalist
+
+    started_at:
+      type: datetime
+      label: Started at
+      validate:
+        required: true
+
+    ended_at:
+      type: datetime
+      label: Ended at
+      help: Required once State is set to Resolved. Must not be earlier than Started at.
+      validate:
+        required: false

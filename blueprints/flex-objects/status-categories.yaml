@@ -1,0 +1,122 @@
+title: Status Categories
+description: The service categories the status page groups incident announcements under. A category's displayed status is derived from its announcements -- there is no manual status field here.
+type: flex-objects
+
+# Flex Configuration
+config:
+  # Administration Configuration
+  admin:
+    # Admin router
+    router:
+      path: '/status-categories'
+
+    # Admin menu
+    menu:
+      list:
+        route: '/status-categories'
+        title: Status Categories
+        icon: fa-list-ul
+        # Authorization to collection admin
+        authorize: ['admin.status-categories.list', 'admin.super']
+        priority: 1
+
+    # Admin template type / folder
+    template: default
+
+    # Permissions -- flex-objects >= 1.4.3 denies by default without this block.
+    permissions:
+      admin.status-categories:
+        type: crudl
+        label: Status Categories
+      api.status-categories:
+        type: crudl
+        label: Status Categories API
+
+    # List view
+    list:
+      title: title
+      fields:
+        title:
+          link: edit
+        key:
+        order:
+
+    # Edit view
+    edit:
+      title:
+        template: "{{ object.title }}"
+
+    # Preview view
+    preview:
+      enabled: false
+
+  # Site Configuration
+  site:
+    # Not directly renderable via the [flex-objects] shortcode -- consumed by
+    # this plugin's own status projection and templates, not general content.
+    hidden: true
+
+  # Data Configuration
+  data:
+    object: 'Grav\Plugin\StatusPage\Flex\Types\StatusCategory\StatusCategoryObject'
+    collection: 'Grav\Plugin\StatusPage\Flex\Types\StatusCategory\StatusCategoryCollection'
+    index: 'Grav\Plugin\StatusPage\Flex\Types\StatusCategory\StatusCategoryIndex'
+    storage:
+      # One YAML file per category -- readable diffs, cheap to hand-edit.
+      class: 'Grav\Framework\Flex\Storage\FileStorage'
+      options:
+        formatter:
+          class: 'Grav\Framework\File\Formatter\YamlFormatter'
+        # CRITICAL: user-data:// is the one part of Grav's plugin-adjacent
+        # surface that is both persistent and not seed-shadowed on the
+        # production volume. plugin:// would lose every category on every
+        # redeploy, silently. Pinned by tests/FlexStoragePathTest.php.
+        folder: 'user-data://flex-objects/status-categories'
+        pattern: '{FOLDER}/{KEY}{EXT}'
+        indexed: true
+        # The `key` field is also the filename -- creating a second category
+        # with an already-used key overwrites the same file rather than
+        # producing a duplicate, which is how uniqueness is enforced.
+        key: key
+        case_sensitive: false
+    search:
+      options:
+        contains: 1
+      fields:
+        - key
+        - title
+
+# Regular form definition
+form:
+  validation: strict
+
+  fields:
+    key:
+      type: text
+      label: Key
+      help: Machine name used to reference this category from announcements. Lowercase letters, numbers, and hyphens only -- also used as the filename, so it must be unique.
+      validate:
+        required: true
+        pattern: '[a-z0-9]+(-[a-z0-9]+)*'
+        message: Key must be lowercase letters, numbers, and hyphens only (e.g. "api-services").
+
+    title:
+      type: text
+      label: Title
+      validate:
+        required: true
+
+    description:
+      type: textarea
+      label: Description
+      validate:
+        required: false
+
+    order:
+      type: number
+      label: Order
+      help: Lower numbers are listed first.
+      default: 0
+      validate:
+        type: int
+        required: false
