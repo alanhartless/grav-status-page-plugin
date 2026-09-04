@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+- Add `StatusProjector`: pure, framework-free computation of a category's
+  current status, N-day history strip, and uptime percentage from plain
+  announcement arrays. Covers interval-overlap severity resolution,
+  open-ended-incident handling (an active/watching incident with no
+  `ended_at` runs to "now"; a resolved one ends at its own last-modified
+  time, never open-ended), and a configurable window length / partial-outage
+  weight -- neither hardcoded. Exhaustively unit-tested, including DST
+  transitions.
+- Add `FlexAnnouncementAdapter`, the thin, duck-typed adapter converting
+  `status-announcements` Flex objects into the plain arrays `StatusProjector`
+  consumes.
+
 ## 0.2.0
 
 - Add the `status-categories` and `status-announcements` Flex Objects

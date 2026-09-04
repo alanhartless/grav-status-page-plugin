@@ -10,8 +10,10 @@ Built entirely on Grav's file-based [Flex Objects](https://learn.getgrav.org/17/
 framework — no database required.
 
 **Status:** the Flex data model is in place -- operators can author
-categories and announcements through the Admin panel. The status
-computation and the public page land in later releases. See `CHANGELOG.md`.
+categories and announcements through the Admin panel -- and the status
+computation (current status, daily history strip, uptime %) is implemented
+and exhaustively unit-tested (`classes/Status/StatusProjector.php`). The
+public page itself lands in a later release. See `CHANGELOG.md`.
 
 ## Requirements
 
