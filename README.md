@@ -65,7 +65,7 @@ derived from its announcements.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `slug` | text | yes | Machine name, generated automatically from the Title when the category is created and never editable afterward. Also the filename, so it must be unique -- a title that slugifies to an already-used value overwrites that category's file rather than creating a duplicate. |
+| `slug` | hidden | yes | Machine name, generated automatically from the Title when the category is created. Also the filename, so it must be unique -- a title that slugifies to an already-used value overwrites that category's file rather than creating a duplicate. Internal only: never shown in the Admin panel, and not something a user ever needs to know about -- announcements relate to a category by title, not by this value. |
 | `title` | text | yes | Display name. |
 | `description` | textarea | no | |
 | `order` | number | no | Lower numbers are listed first. Defaults to `0`. |

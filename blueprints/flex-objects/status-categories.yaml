@@ -38,7 +38,6 @@ config:
       fields:
         title:
           link: edit
-        slug:
         order:
 
     # Edit view
@@ -83,8 +82,11 @@ config:
         # object-identity property of the same name, which silently fails
         # to populate the field's value into the edit form and then fails
         # save with a spurious required-field error. See
-        # StatusCategoryObject::getFormValue()/getBlueprint()/update() for
-        # the rest of what this field name needs to behave correctly.
+        # StatusCategoryObject::getFormValue()/jsonSerialize()/update() for
+        # the rest of what this field name needs to behave correctly. It's
+        # never user-facing -- generated from the title and hidden in the
+        # form (below) -- so there's no UI label to keep in sync with the
+        # rename.
         key: slug
         case_sensitive: false
     search:
@@ -99,12 +101,14 @@ form:
   validation: strict
 
   fields:
+    # Never shown to a user -- generated automatically from `title` at
+    # creation (StatusCategoryObject::__construct()) and used only
+    # internally to relate an announcement to its category. `type: hidden`
+    # keeps it out of the rendered form entirely, on both add and edit,
+    # rather than merely disabling/graying out a field with nothing a user
+    # needs to see or act on.
     slug:
-      type: text
-      label: Slug
-      help: Machine name used to reference this category from announcements. Generated automatically from the Title when the category is created, and never changes afterward.
-      readonly: true
-      disabled: true
+      type: hidden
       validate:
         required: true
         pattern: '[a-z0-9]+(-[a-z0-9]+)*'
