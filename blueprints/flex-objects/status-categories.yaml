@@ -38,7 +38,7 @@ config:
       fields:
         title:
           link: edit
-        key:
+        slug:
         order:
 
     # Edit view
@@ -74,16 +74,24 @@ config:
         folder: 'user-data://flex-objects/status-categories'
         pattern: '{FOLDER}/{KEY}{EXT}'
         indexed: true
-        # The `key` field is also the filename -- creating a second category
-        # with an already-used key overwrites the same file rather than
+        # The `slug` field is also the filename -- creating a second category
+        # with an already-used slug overwrites the same file rather than
         # producing a duplicate, which is how uniqueness is enforced.
-        key: key
+        #
+        # NOTE: this is deliberately not named `key` -- a blueprint field
+        # literally named `key` collides with Admin2's own reserved
+        # object-identity property of the same name, which silently fails
+        # to populate the field's value into the edit form and then fails
+        # save with a spurious required-field error. See
+        # StatusCategoryObject::getFormValue()/getBlueprint()/update() for
+        # the rest of what this field name needs to behave correctly.
+        key: slug
         case_sensitive: false
     search:
       options:
         contains: 1
       fields:
-        - key
+        - slug
         - title
 
 # Regular form definition
@@ -91,14 +99,14 @@ form:
   validation: strict
 
   fields:
-    key:
+    slug:
       type: text
-      label: Key
-      help: Machine name used to reference this category from announcements. Lowercase letters, numbers, and hyphens only -- also used as the filename, so it must be unique.
+      label: Slug
+      help: Machine name used to reference this category from announcements. Lowercase letters, numbers, and hyphens only -- also used as the filename, so it must be unique. Locked once the category is created.
       validate:
         required: true
         pattern: '[a-z0-9]+(-[a-z0-9]+)*'
-        message: Key must be lowercase letters, numbers, and hyphens only (e.g. "api-services").
+        message: Slug must be lowercase letters, numbers, and hyphens only (e.g. "api-services").
 
     title:
       type: text

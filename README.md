@@ -65,7 +65,7 @@ derived from its announcements.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `key` | text | yes | Machine name. Lowercase letters, numbers, and hyphens only. Also the filename, so it must be unique -- creating a second category with an already-used key overwrites the same file rather than creating a duplicate. |
+| `slug` | text | yes | Machine name. Lowercase letters, numbers, and hyphens only. Also the filename, so it must be unique -- creating a second category with an already-used slug overwrites the same file rather than creating a duplicate. Locked once the category is created. |
 | `title` | text | yes | Display name. |
 | `description` | textarea | no | |
 | `order` | number | no | Lower numbers are listed first. Defaults to `0`. |

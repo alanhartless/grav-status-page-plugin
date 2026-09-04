@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- **Fixed:** the `categories` field on an announcement now correctly stores category keys instead of display titles. Previously validated as `commalist` (meant for a plain comma-separated text field); a `type: select, multiple: true` field needs `array`. This silently broke every key-based lookup downstream -- an active outage never colored its category or the overall banner, and the category badge never appeared. **Any announcement saved before this fix needs its Categories field re-selected once** to correct the stored value.
+- **Fixed:** the `categories` field on an announcement now correctly stores category keys instead of display titles. Previously validated as `commalist` (meant for a plain comma-separated text field); a `type: select, multiple: true` field needs `array`. This silently broke every key-based lookup downstream -- an active outage never colored its category or the overall banner, and the category badge never appeared. Categories are also now canonicalized to their key server-side regardless of what the admin form submits, so a stale save can't reintroduce the same corruption. **Any announcement saved before this fix needs its Categories field re-selected once** to correct the stored value.
 - `window_days` capped at 365 (was 3650).
-- Editing an existing category now correctly prepopulates the Key field.
+- **Fixed:** a category's machine-name field is renamed `key` -> `slug`. `key` collided with a reserved object-identity property in Admin2's own Flex API payloads, which silently failed to populate the field's value into the edit form and then failed save with a spurious required-field error. The field is now correctly prepopulated on edit, and is locked (read-only) once a category is created -- Grav's Flex storage never renames the underlying file just because a field value changes, so allowing an edit here would appear to work while leaving the file, and every announcement referencing the old value, out of sync.
 - An announcement's categories render as badges under the title, instead of a plain comma-separated line.
 
 ## 1.0.0
