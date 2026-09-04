@@ -144,7 +144,7 @@ form:
       # Blueprint::addAllowedDynamicCallable() in
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
       # callable allowlist (GHSA-fj2p-qj2f-74v5) silently returns no options.
-      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::options'
+      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::optionsByTitle'
       # `commalist` (a comma-separated-string validator, meant for a plain
       # text/tag field) was the wrong type for a keyed multi-select and is
       # the confirmed root cause of a real bug: submitted through Admin2,

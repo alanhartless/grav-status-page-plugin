@@ -52,7 +52,7 @@ class StatusPagePlugin extends Plugin
      * broader registration would be a real security concern (Grav 2.0's
      * dynamic-callable allowlist exists for exactly this reason).
      */
-    private const CATEGORY_OPTIONS_CALLABLE = CategoryOptions::class . '::options';
+    private const CATEGORY_OPTIONS_CALLABLE = CategoryOptions::class . '::optionsByTitle';
 
     /**
      * @return array

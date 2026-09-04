@@ -49,6 +49,35 @@ final class CategoryOptions
     }
 
     /**
+     * EXPERIMENTAL: the same categories as `options()`, but flipped to a
+     * title => key map -- registered as the `categories` field's actual
+     * `data-options@` provider to test a specific theory about Admin2's
+     * dynamic-select behavior. Evidence so far: picking a fresh category
+     * from the dropdown submits the array's *value* (confirmed -- this is
+     * exactly why `CategoryOptions::normalizeToKeys()` had to exist at all,
+     * since the submitted value was the title, not the `options()` map's
+     * key), and an already-stored *key* value fails to resolve to a label
+     * when the edit form hydrates, as if Admin2 never consults the array's
+     * key for display at all -- only its value, treated as both the
+     * submitted value and the shown label. If that theory holds, flipping
+     * to title => key makes the array's value the real key, which should
+     * make a fresh pick submit real keys directly (no more reliance on
+     * `normalizeToKeys()`), and should make an existing stored key
+     * exact-match the option list on hydration. The expected trade-off:
+     * the dropdown list and any chip would then display the raw key
+     * ("application") instead of the friendly title ("Application")
+     * everywhere, since the theory holds Admin2 never displays the array's
+     * key. Revert to `options()` if this doesn't hold up under live
+     * testing, or if the always-shows-the-key trade-off isn't worth it.
+     *
+     * @return array<string, string> title => key.
+     */
+    public static function optionsByTitle(): array
+    {
+        return array_flip(self::options());
+    }
+
+    /**
      * Turns raw category rows into a key=>title options map, ordered by
      * `order` ascending, then `title` to keep output stable for ties.
      *
