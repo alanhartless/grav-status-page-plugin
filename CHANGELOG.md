@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Fixed:** an announcement's title/state row picked up unwanted padding from a host theme's own base styles for the generic `<header>` HTML element. Switched to a plain `<div>` -- a theme-agnostic plugin shouldn't rely on a host theme never styling common semantic tags it happens to reuse for unrelated purposes.
+- **Fixed:** category badges could show a bullet point depending on the host theme's typography/prose styles, which can target `li` directly with a selector specific enough to beat `list-style: none` set only on the parent `<ul>`. Now also set directly on the badge `<li>` itself.
+
 - Announcement severity badge moved back to sharing a row with the category badges (categories left, severity right), instead of sharing a row with the dates. Dates are their own line again.
 
 - **Fixed:** every status color (banner, category badges, the daily history strip, announcement badges) rendered with no color at all -- devtools reported every `--status-*` custom property as undefined, even with a host theme's `:root` mapping active. Root cause: `.status-page { --status-operational: var(--status-operational, #hex); ... }` is a CSS custom-property self-reference cycle, invalid at computed-value time per spec -- it does not fall through to an ancestor's value, it's just broken. Fixed by removing the redeclaration entirely and moving the fallback onto every `var()` call site that actually consumes each color, the standard pattern for "plugin ships a default, host overrides via the same custom property name."

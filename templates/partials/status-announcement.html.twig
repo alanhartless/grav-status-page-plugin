@@ -11,12 +11,12 @@
   a body never executes.
 #}
 <article class="status-announcement status-announcement--{{ announcement.state }} status-announcement--{{ announcement.severity }}">
-    <header class="status-announcement__header">
+    <div class="status-announcement__header">
         <h3 class="status-announcement__title">{{ announcement.title }}</h3>
         <span class="status-announcement__state status-announcement__state--{{ announcement.state }}">
             {{ announcement.state|capitalize }}
         </span>
-    </header>
+    </div>
 
     {% if announcement.categoryTitles is not empty or announcement.severity != 'none' %}
         <div class="status-announcement__meta">

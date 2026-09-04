@@ -183,6 +183,8 @@
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
 }
 
 .status-announcement__title {
@@ -220,6 +222,11 @@
 }
 
 .status-announcement__category-badge {
+  /* A host theme's own typography/prose styles commonly target `li`
+     directly with a selector specific enough to beat `list-style: none`
+     set only on the parent <ul> (e.g. a "prose ul > li" rule) -- setting
+     it here too is the standard, theme-agnostic hardening against that. */
+  list-style: none;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.1rem 0.55rem;
