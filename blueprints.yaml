@@ -49,11 +49,12 @@ form:
     window_days:
       type: number
       label: Window (days)
-      help: Length of the daily history strip, and the cutoff for how far back resolved announcements are shown.
+      help: Length of the daily history strip, and the cutoff for how far back resolved announcements are shown. Capped at 3650 (10 years) -- this value sizes an in-memory array on every page render.
       default: 90
       validate:
         type: int
         min: 1
+        max: 3650
         required: true
 
     uptime_partial_weight:
