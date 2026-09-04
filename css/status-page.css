@@ -1,11 +1,20 @@
 /*
  * Status Page plugin -- default styles.
  *
- * Every color is a CSS custom property with a built-in fallback -- this
- * plugin ships no host-specific color values. A host theme overrides these
- * the ordinary CSS way, in its own stylesheet, by setting the same custom
- * property names. The fallback hexes below are only used when no host theme
- * sets them at all.
+ * Every color is a CSS custom property with a fallback baked into every
+ * `var()` call site below -- this plugin ships no host-specific color
+ * values. A host theme overrides these the ordinary CSS way, in its own
+ * stylesheet, by setting the same custom property names (typically on
+ * `:root`), which then cascades down normally.
+ *
+ * Deliberately NOT re-declared here (e.g. `.status-page { --status-x:
+ * var(--status-x, #hex); }`) -- that's a CSS custom-property self-reference
+ * cycle, invalid at computed-value time per spec, and confirmed live: it
+ * does not fall through to a value a host theme sets on `:root`, it's just
+ * broken, full stop (`--status-operational is not defined` in devtools,
+ * with the app's own theme mapping active and doing nothing). The fallback
+ * belongs on every consuming `var()` call instead, never on a redeclaration
+ * of the same custom property.
  *
  * Level is never conveyed by color alone: every strip segment and category
  * badge also carries an accessible name/text label (see the Twig
@@ -14,19 +23,11 @@
  */
 
 .status-page {
-  --status-operational: var(--status-operational, #2e7d32);
-  --status-partial-outage: var(--status-partial-outage, #b26a00);
-  --status-outage: var(--status-outage, #c62828);
-  --status-text: var(--status-text, #1a1a1a);
-  --status-muted: var(--status-muted, #5f666e);
-  --status-border: var(--status-border, #d8d8d8);
-  --status-background: var(--status-background, #ffffff);
-
   max-width: 48rem;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
-  color: var(--status-text);
-  background: var(--status-background);
+  color: var(--status-text, #1a1a1a);
+  background: var(--status-background, #ffffff);
   font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.5;
 }
@@ -58,18 +59,18 @@
 }
 
 .status-page__banner--operational {
-  background: color-mix(in srgb, var(--status-operational) 15%, transparent);
-  color: var(--status-operational);
+  background: color-mix(in srgb, var(--status-operational, #2e7d32) 15%, transparent);
+  color: var(--status-operational, #2e7d32);
 }
 
 .status-page__banner--partial-outage {
-  background: color-mix(in srgb, var(--status-partial-outage) 15%, transparent);
-  color: var(--status-partial-outage);
+  background: color-mix(in srgb, var(--status-partial-outage, #b26a00) 15%, transparent);
+  color: var(--status-partial-outage, #b26a00);
 }
 
 .status-page__banner--outage {
-  background: color-mix(in srgb, var(--status-outage) 15%, transparent);
-  color: var(--status-outage);
+  background: color-mix(in srgb, var(--status-outage, #c62828) 15%, transparent);
+  color: var(--status-outage, #c62828);
 }
 
 /* Sections */
@@ -84,14 +85,14 @@
 }
 
 .status-page__empty {
-  color: var(--status-muted);
+  color: var(--status-muted, #5f666e);
   font-style: italic;
 }
 
 /* Categories */
 
 .status-page__category {
-  border: 1px solid var(--status-border);
+  border: 1px solid var(--status-border, #d8d8d8);
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -118,27 +119,27 @@
 }
 
 .status-page__category-level--operational {
-  color: var(--status-operational);
-  background: color-mix(in srgb, var(--status-operational) 15%, transparent);
+  color: var(--status-operational, #2e7d32);
+  background: color-mix(in srgb, var(--status-operational, #2e7d32) 15%, transparent);
 }
 
 .status-page__category-level--partial-outage {
-  color: var(--status-partial-outage);
-  background: color-mix(in srgb, var(--status-partial-outage) 15%, transparent);
+  color: var(--status-partial-outage, #b26a00);
+  background: color-mix(in srgb, var(--status-partial-outage, #b26a00) 15%, transparent);
 }
 
 .status-page__category-level--outage {
-  color: var(--status-outage);
-  background: color-mix(in srgb, var(--status-outage) 15%, transparent);
+  color: var(--status-outage, #c62828);
+  background: color-mix(in srgb, var(--status-outage, #c62828) 15%, transparent);
 }
 
 .status-page__category-description {
-  color: var(--status-muted);
+  color: var(--status-muted, #5f666e);
   margin: 0.5rem 0;
 }
 
 .status-page__uptime {
-  color: var(--status-muted);
+  color: var(--status-muted, #5f666e);
   font-size: 0.85rem;
   margin: 0.5rem 0 0;
 }
@@ -156,21 +157,21 @@
   min-width: 2px;
   height: 1.75rem;
   border-radius: 1px;
-  background: var(--status-operational);
+  background: var(--status-operational, #2e7d32);
 }
 
 .status-strip__day--partial-outage {
-  background: var(--status-partial-outage);
+  background: var(--status-partial-outage, #b26a00);
 }
 
 .status-strip__day--outage {
-  background: var(--status-outage);
+  background: var(--status-outage, #c62828);
 }
 
 /* Announcements */
 
 .status-announcement {
-  border: 1px solid var(--status-border);
+  border: 1px solid var(--status-border, #d8d8d8);
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -194,8 +195,8 @@
   font-weight: 600;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background: var(--status-muted);
-  color: var(--status-background);
+  background: var(--status-muted, #5f666e);
+  color: var(--status-background, #ffffff);
 }
 
 .status-announcement__categories {
@@ -212,9 +213,9 @@
   font-weight: 600;
   padding: 0.1rem 0.55rem;
   border-radius: 999px;
-  background: var(--status-background);
-  color: var(--status-muted);
-  border: 1px solid var(--status-border);
+  background: var(--status-background, #ffffff);
+  color: var(--status-muted, #5f666e);
+  border: 1px solid var(--status-border, #d8d8d8);
 }
 
 /* Dates float left, severity floats right -- same left/right split as
@@ -237,17 +238,17 @@
 }
 
 .status-announcement__severity-badge--partial-outage {
-  color: var(--status-partial-outage);
-  background: color-mix(in srgb, var(--status-partial-outage) 15%, transparent);
+  color: var(--status-partial-outage, #b26a00);
+  background: color-mix(in srgb, var(--status-partial-outage, #b26a00) 15%, transparent);
 }
 
 .status-announcement__severity-badge--outage {
-  color: var(--status-outage);
-  background: color-mix(in srgb, var(--status-outage) 15%, transparent);
+  color: var(--status-outage, #c62828);
+  background: color-mix(in srgb, var(--status-outage, #c62828) 15%, transparent);
 }
 
 .status-announcement__dates {
-  color: var(--status-muted);
+  color: var(--status-muted, #5f666e);
   font-size: 0.85rem;
   margin: 0;
 }
