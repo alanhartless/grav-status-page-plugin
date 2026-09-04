@@ -92,4 +92,50 @@ final class CategoryOptions
 
         return $resolved;
     }
+
+    /**
+     * Canonicalizes a submitted `categories` value to machine keys before it
+     * reaches validation or storage.
+     *
+     * Confirmed live: Admin2's dynamic-`data-options@` multi-select submits
+     * a category's *display title* (e.g. "AI Features") rather than its key
+     * (e.g. "ai-features") on save -- a client-side behavior this class has
+     * no visibility into or control over. Rather than leave every downstream
+     * key-based lookup (StatusProjector's category matching, the category
+     * badge) silently broken, this normalizes at the one point every write
+     * path already passes through: a submitted value that's already a valid
+     * key passes through unchanged; a value that exactly matches a known
+     * category's title (case-insensitive) is translated to that title's
+     * key; anything else is left as-is so the field's own `type: array`
+     * validation still rejects a genuinely unknown value.
+     *
+     * @param mixed $submitted
+     * @param array<string, string> $titlesByKey key => title
+     * @return list<string>
+     */
+    public static function normalizeToKeys(mixed $submitted, array $titlesByKey): array
+    {
+        if (!is_array($submitted)) {
+            return [];
+        }
+
+        $keyByLowerTitle = [];
+        foreach ($titlesByKey as $key => $title) {
+            $keyByLowerTitle[mb_strtolower($title)] = $key;
+        }
+
+        $normalized = [];
+        foreach ($submitted as $value) {
+            $value = (string) $value;
+
+            if (isset($titlesByKey[$value])) {
+                $normalized[] = $value;
+                continue;
+            }
+
+            $normalized[] = $keyByLowerTitle[mb_strtolower($value)] ?? $value;
+        }
+
+        return $normalized;
+    }
 }

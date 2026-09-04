@@ -35,10 +35,19 @@ class StatusAnnouncementObject extends FlexObject
      * path -- Admin2, the Flex API, or direct Flex object usage -- not only
      * the admin form.
      *
+     * Also canonicalizes `categories` to machine keys before anything else
+     * sees it -- see CategoryOptions::normalizeToKeys() for why this is
+     * necessary regardless of what the actual submission bug turns out to
+     * be client-side.
+     *
      * {@inheritdoc}
      */
     public function update(array $data, array $files = [])
     {
+        if (array_key_exists('categories', $data)) {
+            $data['categories'] = CategoryOptions::normalizeToKeys($data['categories'], CategoryOptions::options());
+        }
+
         $merged = $this->getBlueprint()->mergeData($this->getElements(), $data);
 
         $errors = StatusAnnouncementValidator::validate($merged);

@@ -115,4 +115,62 @@ final class CategoryOptionsTest extends TestCase
     {
         self::assertSame([], CategoryOptions::resolveTitles([], ['api' => 'API']));
     }
+
+    // -- normalizeToKeys(): confirmed live (2026-09-04) that Admin2's
+    // dynamic-`data-options@` multi-select submits a category's display
+    // title instead of its key on save. These pin the canonicalization that
+    // makes every downstream key-based lookup work regardless. --
+
+    #[Test]
+    public function normalize_to_keys_passes_through_an_already_correct_key(): void
+    {
+        $result = CategoryOptions::normalizeToKeys(['ai-features'], ['ai-features' => 'AI Features']);
+
+        self::assertSame(['ai-features'], $result);
+    }
+
+    #[Test]
+    public function normalize_to_keys_translates_a_submitted_title_to_its_key(): void
+    {
+        $result = CategoryOptions::normalizeToKeys(['AI Features'], ['ai-features' => 'AI Features']);
+
+        self::assertSame(['ai-features'], $result);
+    }
+
+    #[Test]
+    public function normalize_to_keys_title_match_is_case_insensitive(): void
+    {
+        $result = CategoryOptions::normalizeToKeys(['ai features'], ['ai-features' => 'AI Features']);
+
+        self::assertSame(['ai-features'], $result);
+    }
+
+    #[Test]
+    public function normalize_to_keys_handles_a_mix_of_keys_and_titles(): void
+    {
+        $result = CategoryOptions::normalizeToKeys(
+            ['ai-features', 'Applicaton'],
+            ['ai-features' => 'AI Features', 'applicaton' => 'Applicaton']
+        );
+
+        self::assertSame(['ai-features', 'applicaton'], $result);
+    }
+
+    #[Test]
+    public function normalize_to_keys_leaves_a_genuinely_unknown_value_unchanged(): void
+    {
+        // Left as-is deliberately -- the field's own `type: array` validation
+        // is what rejects a truly unknown value; this method's job is only
+        // to canonicalize values that DO correspond to a real category.
+        $result = CategoryOptions::normalizeToKeys(['not-a-real-category'], ['ai-features' => 'AI Features']);
+
+        self::assertSame(['not-a-real-category'], $result);
+    }
+
+    #[Test]
+    public function normalize_to_keys_returns_empty_array_for_a_non_array_submission(): void
+    {
+        self::assertSame([], CategoryOptions::normalizeToKeys(null, ['ai-features' => 'AI Features']));
+        self::assertSame([], CategoryOptions::normalizeToKeys('AI Features', ['ai-features' => 'AI Features']));
+    }
 }
