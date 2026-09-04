@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `window_days` capped at 365 (was 3650).
+- Editing an existing category now correctly prepopulates the Key field.
+- An announcement's categories render as badges under the title, instead of a plain comma-separated line.
+
 ## 1.0.0
 
 Initial release.
