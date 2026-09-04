@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Grav\Plugin\StatusPage\Flex\Types\StatusCategory;
 
 use Grav\Common\Flex\FlexObject;
+use Grav\Framework\Flex\FlexDirectory;
 
 /**
  * A service category the status page groups incident announcements under.
@@ -27,6 +28,46 @@ class StatusCategoryObject extends FlexObject
     public function getTitle(): string
     {
         return (string) ($this->title ?? $this->getKey());
+    }
+
+    /**
+     * Derives `slug` from `title` at creation time, since the field is
+     * always readonly/disabled in the form (see the blueprint) and Admin2
+     * therefore never submits a value for it. `$key === ''` is exactly how
+     * flex-objects' own create endpoint constructs a brand-new object
+     * (`FlexDirectory::createObject($body, '')`); an object being loaded
+     * from existing storage always arrives with its real key already set,
+     * so this never runs again on a category that already exists.
+     *
+     * {@inheritdoc}
+     */
+    public function __construct(array $elements, $key, FlexDirectory $_flexDirectory, bool $validate = false)
+    {
+        if ($key === '' && !array_key_exists('slug', $elements) && !empty($elements['title'])) {
+            $elements['slug'] = self::slugify((string) $elements['title']);
+        }
+
+        parent::__construct($elements, $key, $_flexDirectory, $validate);
+    }
+
+    /**
+     * Lowercases, replaces runs of non-alphanumeric characters with a single
+     * hyphen, and trims leading/trailing hyphens -- matches the blueprint's
+     * own `[a-z0-9]+(-[a-z0-9]+)*` validation pattern. Falls back to a short
+     * random suffix if the title contains no matchable characters at all
+     * (e.g. pure punctuation or emoji), so a category can never end up with
+     * an empty or invalid storage key.
+     *
+     * @param string $title
+     * @return string
+     */
+    private static function slugify(string $title): string
+    {
+        $slug = strtolower(trim($title));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug) ?? '';
+        $slug = trim($slug, '-');
+
+        return $slug !== '' ? $slug : 'category-' . substr(md5(uniqid('', true)), 0, 8);
     }
 
     /**
@@ -71,39 +112,16 @@ class StatusCategoryObject extends FlexObject
     }
 
     /**
-     * Locks the `slug` field once a category already exists.
-     *
-     * Grav's Flex storage never renames a file just because a field value
-     * changed -- `updateRow()` always saves to the object's existing key,
-     * and `renameRow()` is a separate operation nothing calls automatically
-     * on a plain update. So without this, editing `slug` on a saved
-     * category would appear to work (the form field updates, the save
-     * succeeds) while doing nothing real: the file keeps its original
-     * name, and every announcement referencing the old slug keeps pointing
-     * at a value the category no longer claims to have. Locking the field
-     * after creation avoids that silent mismatch entirely. `update()`
-     * below is the server-side backstop in case anything ever bypasses
-     * this form-level lock.
-     *
-     * {@inheritdoc}
-     */
-    public function getBlueprint(string $name = '')
-    {
-        $blueprint = parent::getBlueprint($name);
-
-        if ($this->exists()) {
-            $blueprint->set('form/fields/slug/readonly', true);
-            $blueprint->set('form/fields/slug/disabled', true);
-        }
-
-        return $blueprint;
-    }
-
-    /**
-     * Server-side backstop for the `slug` lock above -- ignores any
-     * submitted change to `slug` on a category that already exists, rather
-     * than trusting the disabled/readonly form fields to have been
-     * respected by every caller (Admin2, the Flex API, direct usage).
+     * `slug` is permanently readonly/disabled in the blueprint (both add and
+     * edit share the exact same schema in Admin2 -- there is no server-side
+     * way to vary it between the two), so this is a backstop against any
+     * caller that bypasses the form entirely (a raw Flex API PATCH, direct
+     * object usage). Confirmed empirically: Grav's Flex storage does not
+     * rename a file just because a field value changes on update -- the
+     * `slug` field is already excluded from stored elements (see
+     * `jsonSerialize()` above), so nothing ever reaches the storage layer's
+     * key-change detection regardless. Silently ignoring the change here
+     * keeps that behavior explicit and intentional rather than accidental.
      *
      * {@inheritdoc}
      */

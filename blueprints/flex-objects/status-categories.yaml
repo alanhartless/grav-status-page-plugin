@@ -102,7 +102,9 @@ form:
     slug:
       type: text
       label: Slug
-      help: Machine name used to reference this category from announcements. Lowercase letters, numbers, and hyphens only -- also used as the filename, so it must be unique. Locked once the category is created.
+      help: Machine name used to reference this category from announcements. Generated automatically from the Title when the category is created, and never changes afterward.
+      readonly: true
+      disabled: true
       validate:
         required: true
         pattern: '[a-z0-9]+(-[a-z0-9]+)*'
