@@ -134,9 +134,19 @@ form:
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
       # callable allowlist (GHSA-fj2p-qj2f-74v5) silently returns no options.
       data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::options'
+      # `commalist` (a comma-separated-string validator, meant for a plain
+      # text/tag field) was the wrong type for a keyed multi-select and is
+      # the confirmed root cause of a real bug: submitted through Admin2,
+      # this field stored the selected categories' *display titles*
+      # ("AI Features") instead of their machine keys ("ai-features"),
+      # silently breaking every key-based lookup downstream (the category
+      # badge on this announcement, and StatusProjector's category
+      # matching -- an active outage never colored its category or the
+      # overall banner). `array` is the correct validator for a
+      # `type: select, multiple: true` field's submitted value.
       validate:
         required: true
-        type: commalist
+        type: array
 
     started_at:
       type: datetime
