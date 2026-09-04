@@ -11,7 +11,13 @@ namespace Grav\Plugin\StatusPage\Status;
 final class StatusProjection
 {
     /**
-     * @param 'operational'|'partial-outage'|'outage' $current
+     * @param 'operational'|'partial-outage'|'outage' $current Today's cell
+     *   in the day-by-day history strip -- a permanent historical record of
+     *   the worst thing that happened that calendar day, which does NOT
+     *   revert to `operational` just because it was resolved later the same
+     *   day. NOT the same thing as live/right-now status -- see
+     *   `StatusProjector::liveStatus()` for that, used by the banner and a
+     *   category's status badge instead.
      * @param list<array{date: string, level: 'operational'|'partial-outage'|'outage'}> $days
      *   Exactly `windowDays` entries, oldest first, ending today.
      * @param float $uptime 0..1, unrounded.

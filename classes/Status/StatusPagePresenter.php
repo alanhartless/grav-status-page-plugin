@@ -29,7 +29,10 @@ final class StatusPagePresenter
      *     active_watching: list<object>,
      *     categories: list<array{key: string, title: string, description: ?string, current: string, days: list<array{date: string, level: string}>, uptime: float}>,
      *     resolved: list<object>,
-     * }
+     * } `banner` and each category's `current` are live status
+     *   (`StatusProjector::liveStatus()`) -- whatever's ongoing right now,
+     *   not today's history-strip cell. `days` (unaffected) is the
+     *   permanent per-day historical record.
      */
     public static function build(Flex $flex, Config $config, DateTimeImmutable $now): array
     {
@@ -83,12 +86,18 @@ final class StatusPagePresenter
                 $partialWeight
             );
 
-            $currents[] = $projection->current;
+            // Deliberately not $projection->current: that's today's
+            // permanent history-strip cell, not "is anything ongoing right
+            // now" -- see StatusProjector::liveStatus() for why the two
+            // differ once something is resolved same-day.
+            $liveStatus = StatusProjector::liveStatus($announcementArrays, $key);
+
+            $currents[] = $liveStatus;
             $categories[] = [
                 'key' => $key,
                 'title' => (string) ($category->title ?? $key),
                 'description' => $category->description ?? null,
-                'current' => $projection->current,
+                'current' => $liveStatus,
                 'days' => $projection->days,
                 'uptime' => $projection->uptime,
             ];

@@ -830,6 +830,85 @@ final class StatusProjectorTest extends TestCase
         );
         self::assertSame(1.0, $projection->uptime);
     }
+
+    // -- liveStatus(): right-now status, deliberately independent of the
+    // day-strip's per-day historical record (a resolved-today outage must
+    // not keep the banner/badge stuck on `outage` until midnight). --
+
+    #[Test]
+    public function live_status_is_operational_with_no_announcements(): void
+    {
+        self::assertSame('operational', StatusProjector::liveStatus([], 'api'));
+    }
+
+    #[Test]
+    public function live_status_reflects_an_active_announcements_severity(): void
+    {
+        $announcements = [$this->announcement(['state' => 'active', 'severity' => 'outage'])];
+
+        self::assertSame('outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_reflects_a_watching_announcements_severity(): void
+    {
+        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'partial-outage'])];
+
+        self::assertSame('partial-outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_ignores_a_resolved_announcement_regardless_of_ended_at(): void
+    {
+        // The exact bug this method fixes: resolving an outage announcement
+        // must not leave the banner/badge stuck on 'outage' -- confirmed
+        // even when ended_at is set to right now.
+        $announcements = [$this->announcement([
+            'state' => 'resolved',
+            'severity' => 'outage',
+            'ended_at' => '2026-09-04 12:00:00',
+        ])];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_ignores_severity_none(): void
+    {
+        $announcements = [$this->announcement(['state' => 'active', 'severity' => 'none'])];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_ignores_announcements_for_a_different_category(): void
+    {
+        $announcements = [$this->announcement(['state' => 'active', 'severity' => 'outage', 'categories' => ['web']])];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_is_the_worst_of_multiple_active_announcements(): void
+    {
+        $announcements = [
+            $this->announcement(['state' => 'active', 'severity' => 'partial-outage']),
+            $this->announcement(['state' => 'watching', 'severity' => 'outage']),
+        ];
+
+        self::assertSame('outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_stays_operational_when_only_a_resolved_announcement_exists_for_the_category(): void
+    {
+        $announcements = [
+            $this->announcement(['state' => 'resolved', 'severity' => 'outage', 'ended_at' => '2026-09-04 12:00:00']),
+            $this->announcement(['state' => 'active', 'severity' => 'outage', 'categories' => ['web']]),
+        ];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
 }
 
 /**

@@ -54,6 +54,58 @@ final class StatusProjector
     ];
 
     /**
+     * The category's *live* status, right now -- deliberately separate from
+     * `project()`'s `StatusProjection::$current`, which is today's cell in
+     * the day-by-day history strip. Those are different questions: a day
+     * that had an outage should permanently show as having had one in the
+     * strip, even after the outage is resolved later the same day, but the
+     * banner and a category's status badge should revert to `operational`
+     * the moment the last affecting announcement is actually resolved --
+     * confirmed as a real bug otherwise (resolving an outage announcement
+     * left the banner and category badge stuck on `outage` until midnight,
+     * because they were reusing today's -- correctly still colored --
+     * history-strip cell).
+     *
+     * No date arithmetic is needed here, unlike `project()`: `resolved` by
+     * definition means "not ongoing," so only `active`/`watching`
+     * announcements can ever contribute, full stop -- an interval-overlap
+     * check against `now` would just be a more roundabout way of asking the
+     * same question `project()` already answers for the strip.
+     *
+     * @param iterable<array<string, mixed>> $announcements Plain announcement
+     *   arrays, in any order.
+     * @param string $categoryKey Only announcements listing this category
+     *   (in their `categories` array) count.
+     * @return 'operational'|'partial-outage'|'outage'
+     */
+    public static function liveStatus(iterable $announcements, string $categoryKey): string
+    {
+        $rank = self::RANK_OPERATIONAL;
+
+        foreach ($announcements as $announcement) {
+            $state = (string) ($announcement['state'] ?? '');
+            if ($state !== 'active' && $state !== 'watching') {
+                continue;
+            }
+
+            $severity = (string) ($announcement['severity'] ?? 'none');
+            $severityRank = self::SEVERITY_RANK[$severity] ?? null;
+            if ($severityRank === null || $severityRank <= $rank) {
+                continue;
+            }
+
+            $categories = $announcement['categories'] ?? [];
+            if (!is_array($categories) || !in_array($categoryKey, $categories, true)) {
+                continue;
+            }
+
+            $rank = $severityRank;
+        }
+
+        return self::LEVEL_BY_RANK[$rank];
+    }
+
+    /**
      * @param iterable<array<string, mixed>> $announcements Plain announcement
      *   arrays, in any order -- iterated exactly once (AC: one pass over the
      *   announcement set per category, never a nested per-day re-scan).
