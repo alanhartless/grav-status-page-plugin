@@ -58,4 +58,28 @@ final class OverallStatusTest extends TestCase
     {
         self::assertSame('operational', OverallStatus::fromCurrents(['not-a-real-level']));
     }
+
+    #[Test]
+    public function one_watching_among_operational_categories_is_watching(): void
+    {
+        self::assertSame(
+            'watching',
+            OverallStatus::fromCurrents(['operational', 'watching', 'operational'])
+        );
+    }
+
+    #[Test]
+    public function a_real_partial_outage_outranks_watching(): void
+    {
+        self::assertSame(
+            'partial-outage',
+            OverallStatus::fromCurrents(['watching', 'partial-outage'])
+        );
+    }
+
+    #[Test]
+    public function a_real_outage_outranks_watching(): void
+    {
+        self::assertSame('outage', OverallStatus::fromCurrents(['watching', 'outage']));
+    }
 }

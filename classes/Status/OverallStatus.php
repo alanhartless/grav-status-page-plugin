@@ -7,16 +7,20 @@ namespace Grav\Plugin\StatusPage\Status;
 /**
  * The public page's overall banner level: the worst of every category's own
  * `current` level -- stating plainly whether every category is currently
- * operational. Mirrors `StatusProjector`'s own severity order (`outage` >
- * `partial-outage` > `operational`) rather than a second, potentially-
- * diverging rank table.
+ * operational. Mirrors `StatusProjector::liveStatus()`'s own level order
+ * (`outage` > `partial-outage` > `watching` > `operational`) rather than a
+ * second, potentially-diverging rank table. `watching` ranks just above
+ * `operational`: a category that's only being monitored, with nothing
+ * currently confirmed active anywhere, must never outrank one with a real
+ * ongoing outage or partial outage elsewhere.
  */
 final class OverallStatus
 {
     private const RANK = [
         'operational' => 0,
-        'partial-outage' => 1,
-        'outage' => 2,
+        'watching' => 1,
+        'partial-outage' => 2,
+        'outage' => 3,
     ];
 
     /**

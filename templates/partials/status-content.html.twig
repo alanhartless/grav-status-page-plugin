@@ -11,10 +11,12 @@
     <div class="status-page__banner status-page__banner--{{ status.banner }}" role="status">
         {% if status.banner == 'operational' %}
             All systems operational.
+        {% elseif status.banner == 'watching' %}
+            {{ status.banner_message_watching }}
         {% elseif status.banner == 'partial-outage' %}
             Some systems are experiencing a partial outage.
         {% else %}
-            Some systems are experiencing an outage.
+            {{ status.banner_message_outage }}
         {% endif %}
     </div>
 

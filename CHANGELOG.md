@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Added:** a new `watching` status level for the overall banner and category badges. Once every currently-live (non-resolved) announcement affecting a category is specifically in the `watching` state -- none still `active` -- it's shown as `watching` (a new warning color, `--status-watching`) instead of the severity-based outage/partial-outage color. A single still-`active` announcement anywhere in the live set falls straight through to the normal severity-based level, since that means something is confirmed still happening.
+- **Added:** the overall banner's watching and outage messages are now configurable (`banner_message_watching`, `banner_message_outage` in the plugin's config), defaulting to "All systems have recovered and we're actively monitoring the situation." and "Some systems are experiencing an outage." respectively.
+
 - Announcement title made explicitly larger and bolder (1.35rem, weight 700) than the body text below it -- previously relied on `<h3>`'s default styling, which a host theme's own heading resets could (and did) leave no more prominent than body copy.
 
 - **Fixed:** an announcement's title/state row picked up unwanted padding from a host theme's own base styles for the generic `<header>` HTML element. Switched to a plain `<div>` -- a theme-agnostic plugin shouldn't rely on a host theme never styling common semantic tags it happens to reuse for unrelated purposes.

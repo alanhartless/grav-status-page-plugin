@@ -32,6 +32,7 @@ use InvalidArgumentException;
 final class StatusProjector
 {
     private const LEVEL_OPERATIONAL = 'operational';
+    private const LEVEL_WATCHING = 'watching';
     private const LEVEL_PARTIAL_OUTAGE = 'partial-outage';
     private const LEVEL_OUTAGE = 'outage';
 
@@ -72,25 +73,30 @@ final class StatusProjector
      * check against `now` would just be a more roundabout way of asking the
      * same question `project()` already answers for the strip.
      *
+     * `watching` is a fourth, state-driven level distinct from severity:
+     * once every currently-live (non-resolved) announcement affecting this
+     * category is specifically in the `watching` state -- none still
+     * `active` -- the category is no longer treated as having a confirmed
+     * ongoing issue, even if the watched announcement's own `severity` is
+     * `outage`/`partial-outage`. It ranks between `operational` and
+     * `partial-outage`: a single still-`active` announcement anywhere in
+     * the live set immediately falls through to the normal severity-based
+     * level instead, since that means something is confirmed still
+     * happening, not just being monitored.
+     *
      * @param iterable<array<string, mixed>> $announcements Plain announcement
      *   arrays, in any order.
      * @param string $categoryKey Only announcements listing this category
      *   (in their `categories` array) count.
-     * @return 'operational'|'partial-outage'|'outage'
+     * @return 'operational'|'watching'|'partial-outage'|'outage'
      */
     public static function liveStatus(iterable $announcements, string $categoryKey): string
     {
-        $rank = self::RANK_OPERATIONAL;
+        $live = [];
 
         foreach ($announcements as $announcement) {
             $state = (string) ($announcement['state'] ?? '');
             if ($state !== 'active' && $state !== 'watching') {
-                continue;
-            }
-
-            $severity = (string) ($announcement['severity'] ?? 'none');
-            $severityRank = self::SEVERITY_RANK[$severity] ?? null;
-            if ($severityRank === null || $severityRank <= $rank) {
                 continue;
             }
 
@@ -99,10 +105,33 @@ final class StatusProjector
                 continue;
             }
 
-            $rank = $severityRank;
+            $live[] = $announcement;
         }
 
-        return self::LEVEL_BY_RANK[$rank];
+        if ($live === []) {
+            return self::LEVEL_OPERATIONAL;
+        }
+
+        $rank = self::RANK_OPERATIONAL;
+        $allWatching = true;
+
+        foreach ($live as $announcement) {
+            if (($announcement['state'] ?? '') !== 'watching') {
+                $allWatching = false;
+            }
+
+            $severity = (string) ($announcement['severity'] ?? 'none');
+            $severityRank = self::SEVERITY_RANK[$severity] ?? null;
+            if ($severityRank !== null && $severityRank > $rank) {
+                $rank = $severityRank;
+            }
+        }
+
+        if ($rank === self::RANK_OPERATIONAL) {
+            return self::LEVEL_OPERATIONAL;
+        }
+
+        return $allWatching ? self::LEVEL_WATCHING : self::LEVEL_BY_RANK[$rank];
     }
 
     /**

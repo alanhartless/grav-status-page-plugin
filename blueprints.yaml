@@ -46,6 +46,22 @@ form:
       validate:
         required: true
 
+    banner_message_watching:
+      type: text
+      label: Watching banner message
+      help: Shown when every currently affected system is only being watched/monitored, with nothing confirmed still active.
+      default: "All systems have recovered and we're actively monitoring the situation."
+      validate:
+        required: true
+
+    banner_message_outage:
+      type: text
+      label: Outage banner message
+      help: Shown when at least one system has a confirmed active outage.
+      default: 'Some systems are experiencing an outage.'
+      validate:
+        required: true
+
     window_days:
       type: number
       label: Window (days)

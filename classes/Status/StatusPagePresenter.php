@@ -26,6 +26,8 @@ final class StatusPagePresenter
      *     page_title: string,
      *     window_days: int,
      *     banner: string,
+     *     banner_message_watching: string,
+     *     banner_message_outage: string,
      *     active_watching: list<object>,
      *     categories: list<array{key: string, title: string, description: ?string, current: string, days: list<array{date: string, level: string}>, uptime: float}>,
      *     resolved: list<object>,
@@ -110,6 +112,14 @@ final class StatusPagePresenter
             'page_title' => (string) $config->get('plugins.status-page.page_title', 'Status'),
             'window_days' => $windowDays,
             'banner' => OverallStatus::fromCurrents($currents),
+            'banner_message_watching' => (string) $config->get(
+                'plugins.status-page.banner_message_watching',
+                "All systems have recovered and we're actively monitoring the situation."
+            ),
+            'banner_message_outage' => (string) $config->get(
+                'plugins.status-page.banner_message_outage',
+                'Some systems are experiencing an outage.'
+            ),
             'active_watching' => array_map(static fn($key) => $announcementObjects[$key], $activeWatchingKeys),
             'categories' => $categories,
             'resolved' => array_map(static fn($key) => $announcementObjects[$key], $resolvedKeys),

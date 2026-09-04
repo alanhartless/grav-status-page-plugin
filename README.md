@@ -123,11 +123,11 @@ self-contained `<html>` page with no theme dependency at all.
 
 **Colors.** The page's status colors are CSS custom properties with
 built-in fallbacks (`var(--status-operational, #2e7d32)`, `--status-
-partial-outage`, `--status-outage`, plus `--status-text`/`--status-muted`/
-`--status-border`/`--status-background`), all defined in this plugin's own
-`css/status-page.css`. A host theme overrides any of them the ordinary CSS
-way -- set the same custom property names in its own stylesheet, scoped as
-broadly or as narrowly as it likes.
+watching`, `--status-partial-outage`, `--status-outage`, plus `--status-
+text`/`--status-muted`/`--status-border`/`--status-background`), all
+defined in this plugin's own `css/status-page.css`. A host theme overrides
+any of them the ordinary CSS way -- set the same custom property names in
+its own stylesheet, scoped as broadly or as narrowly as it likes.
 
 ## License
 

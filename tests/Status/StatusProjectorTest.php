@@ -850,14 +850,6 @@ final class StatusProjectorTest extends TestCase
     }
 
     #[Test]
-    public function live_status_reflects_a_watching_announcements_severity(): void
-    {
-        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'partial-outage'])];
-
-        self::assertSame('partial-outage', StatusProjector::liveStatus($announcements, 'api'));
-    }
-
-    #[Test]
     public function live_status_ignores_a_resolved_announcement_regardless_of_ended_at(): void
     {
         // The exact bug this method fixes: resolving an outage announcement
@@ -906,6 +898,68 @@ final class StatusProjectorTest extends TestCase
             $this->announcement(['state' => 'resolved', 'severity' => 'outage', 'ended_at' => '2026-09-04 12:00:00']),
             $this->announcement(['state' => 'active', 'severity' => 'outage', 'categories' => ['web']]),
         ];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    // -- liveStatus() 'watching' level: once every currently-live
+    // announcement for a category is state 'watching' (none still
+    // 'active'), the category is no longer treated as confirmed-ongoing,
+    // even if the watched announcement's own severity is outage/
+    // partial-outage. --
+
+    #[Test]
+    public function live_status_is_watching_when_the_only_live_announcement_is_watching_with_outage_severity(): void
+    {
+        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'outage'])];
+
+        self::assertSame('watching', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_is_watching_when_the_only_live_announcement_is_watching_with_partial_outage_severity(): void
+    {
+        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'partial-outage'])];
+
+        self::assertSame('watching', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_is_watching_when_multiple_live_announcements_are_all_watching(): void
+    {
+        $announcements = [
+            $this->announcement(['state' => 'watching', 'severity' => 'partial-outage']),
+            $this->announcement(['state' => 'watching', 'severity' => 'outage']),
+        ];
+
+        self::assertSame('watching', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_falls_through_to_severity_when_any_live_announcement_is_still_active(): void
+    {
+        // Mixed: one watching, one active -- a confirmed ongoing issue
+        // exists, so this must NOT show as merely 'watching'.
+        $announcements = [
+            $this->announcement(['state' => 'watching', 'severity' => 'partial-outage']),
+            $this->announcement(['state' => 'active', 'severity' => 'outage']),
+        ];
+
+        self::assertSame('outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_stays_operational_for_a_watching_announcement_with_severity_none(): void
+    {
+        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'none'])];
+
+        self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_ignores_a_watching_announcement_for_a_different_category(): void
+    {
+        $announcements = [$this->announcement(['state' => 'watching', 'severity' => 'outage', 'categories' => ['web']])];
 
         self::assertSame('operational', StatusProjector::liveStatus($announcements, 'api'));
     }

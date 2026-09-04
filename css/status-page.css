@@ -63,6 +63,11 @@
   color: var(--status-operational, #2e7d32);
 }
 
+.status-page__banner--watching {
+  background: color-mix(in srgb, var(--status-watching, #8a6d00) 15%, transparent);
+  color: var(--status-watching, #8a6d00);
+}
+
 .status-page__banner--partial-outage {
   background: color-mix(in srgb, var(--status-partial-outage, #b26a00) 15%, transparent);
   color: var(--status-partial-outage, #b26a00);
@@ -121,6 +126,11 @@
 .status-page__category-level--operational {
   color: var(--status-operational, #2e7d32);
   background: color-mix(in srgb, var(--status-operational, #2e7d32) 15%, transparent);
+}
+
+.status-page__category-level--watching {
+  color: var(--status-watching, #8a6d00);
+  background: color-mix(in srgb, var(--status-watching, #8a6d00) 15%, transparent);
 }
 
 .status-page__category-level--partial-outage {
