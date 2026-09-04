@@ -885,10 +885,40 @@ final class StatusProjectorTest extends TestCase
     {
         $announcements = [
             $this->announcement(['state' => 'active', 'severity' => 'partial-outage']),
-            $this->announcement(['state' => 'watching', 'severity' => 'outage']),
+            $this->announcement(['state' => 'active', 'severity' => 'outage']),
         ];
 
         self::assertSame('outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_uses_only_the_active_announcements_severity_ignoring_a_more_severe_watching_one(): void
+    {
+        // Confirmed live: an active partial-outage announcement alongside a
+        // watching outage announcement for the same category must show
+        // 'partial-outage' -- the active one's own severity -- not 'outage'
+        // (the watching one's severity must never count) and not 'watching'
+        // either (something IS confirmed still active).
+        $announcements = [
+            $this->announcement(['state' => 'active', 'severity' => 'partial-outage']),
+            $this->announcement(['state' => 'watching', 'severity' => 'outage']),
+        ];
+
+        self::assertSame('partial-outage', StatusProjector::liveStatus($announcements, 'api'));
+    }
+
+    #[Test]
+    public function live_status_shows_watching_when_the_only_active_announcement_has_severity_none(): void
+    {
+        // The active announcement is purely informational (no real
+        // severity), so it doesn't block the watching fallback the way a
+        // real active severity would.
+        $announcements = [
+            $this->announcement(['state' => 'active', 'severity' => 'none']),
+            $this->announcement(['state' => 'watching', 'severity' => 'outage']),
+        ];
+
+        self::assertSame('watching', StatusProjector::liveStatus($announcements, 'api'));
     }
 
     #[Test]

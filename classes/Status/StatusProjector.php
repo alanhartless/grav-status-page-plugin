@@ -73,16 +73,24 @@ final class StatusProjector
      * check against `now` would just be a more roundabout way of asking the
      * same question `project()` already answers for the strip.
      *
-     * `watching` is a fourth, state-driven level distinct from severity:
-     * once every currently-live (non-resolved) announcement affecting this
-     * category is specifically in the `watching` state -- none still
-     * `active` -- the category is no longer treated as having a confirmed
-     * ongoing issue, even if the watched announcement's own `severity` is
-     * `outage`/`partial-outage`. It ranks between `operational` and
-     * `partial-outage`: a single still-`active` announcement anywhere in
-     * the live set immediately falls through to the normal severity-based
-     * level instead, since that means something is confirmed still
-     * happening, not just being monitored.
+     * `watching` is a fourth, state-driven level distinct from severity: a
+     * `watching` announcement's own `severity` never contributes to the
+     * severity-based rank at all -- only `active` announcements do. A
+     * single still-`active` announcement for the category always decides
+     * the level (its worst severity among just the `active` ones, ignoring
+     * any co-occurring `watching` announcement's severity entirely, however
+     * severe). Only once there is no `active` announcement left, but at
+     * least one `watching` one with real severity, does the category fall
+     * back to the `watching` level -- ranked between `operational` and
+     * `partial-outage`, since "we're monitoring something" is less alarming
+     * than a confirmed ongoing issue but still worth flagging over plain
+     * `operational`.
+     *
+     * Confirmed live: two announcements for the same category, one `active`
+     * with `partial-outage` severity and one `watching` with `outage`
+     * severity, must show `partial-outage` (the active one's own severity)
+     * -- not `outage`, and not `watching` either, since something IS
+     * confirmed still active.
      *
      * @param iterable<array<string, mixed>> $announcements Plain announcement
      *   arrays, in any order.
@@ -92,7 +100,9 @@ final class StatusProjector
      */
     public static function liveStatus(iterable $announcements, string $categoryKey): string
     {
-        $live = [];
+        $activeRank = self::RANK_OPERATIONAL;
+        $hasActive = false;
+        $hasWatchingWithSeverity = false;
 
         foreach ($announcements as $announcement) {
             $state = (string) ($announcement['state'] ?? '');
@@ -105,33 +115,24 @@ final class StatusProjector
                 continue;
             }
 
-            $live[] = $announcement;
-        }
-
-        if ($live === []) {
-            return self::LEVEL_OPERATIONAL;
-        }
-
-        $rank = self::RANK_OPERATIONAL;
-        $allWatching = true;
-
-        foreach ($live as $announcement) {
-            if (($announcement['state'] ?? '') !== 'watching') {
-                $allWatching = false;
-            }
-
             $severity = (string) ($announcement['severity'] ?? 'none');
             $severityRank = self::SEVERITY_RANK[$severity] ?? null;
-            if ($severityRank !== null && $severityRank > $rank) {
-                $rank = $severityRank;
+
+            if ($state === 'active') {
+                $hasActive = true;
+                if ($severityRank !== null && $severityRank > $activeRank) {
+                    $activeRank = $severityRank;
+                }
+            } elseif ($severityRank !== null) {
+                $hasWatchingWithSeverity = true;
             }
         }
 
-        if ($rank === self::RANK_OPERATIONAL) {
-            return self::LEVEL_OPERATIONAL;
+        if ($hasActive && $activeRank !== self::RANK_OPERATIONAL) {
+            return self::LEVEL_BY_RANK[$activeRank];
         }
 
-        return $allWatching ? self::LEVEL_WATCHING : self::LEVEL_BY_RANK[$rank];
+        return $hasWatchingWithSeverity ? self::LEVEL_WATCHING : self::LEVEL_OPERATIONAL;
     }
 
     /**

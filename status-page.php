@@ -182,6 +182,30 @@ class StatusPagePlugin extends Plugin
         // rendered when the cache was last warmed.
         $page->modifyHeader('cache_enable', false);
         $page->modifyHeader('never_cache_twig', true);
+        // The two flags above only stop Grav's own SERVER-SIDE render cache
+        // from reusing a stale copy -- they say nothing about what the
+        // BROWSER does. Without an explicit override, Grav core's default
+        // system.pages.expires (604800 seconds -- 7 days) still applies,
+        // sending Cache-Control: max-age=604800 on every response. A
+        // browser honoring that header serves its own week-old cached copy
+        // and never even asks the server again, so the server always
+        // rendering fresh data is irrelevant -- confirmed as the actual
+        // cause of needing a manual admin cache-clear (which does nothing
+        // for browser-side caching) plus a hard-refresh to see a saved
+        // announcement change. `no-store` tells every cache in the chain
+        // (browser and any intermediate proxy) never to store this
+        // response at all.
+        //
+        // Deliberately NOT modifyHeader('expires'/'cache_control', ...):
+        // Page::expires()/cacheControl() read their own dedicated
+        // properties ($this->expires/$this->cache_control), which are only
+        // ever synced from $this->header once, during the page's initial
+        // frontmatter parse -- before these lines run. modifyHeader() only
+        // touches the header object, so it would silently do nothing here;
+        // confirmed live (the response still carried max-age=604800 with
+        // modifyHeader()). The dedicated setters are the only way in.
+        $page->expires(0);
+        $page->cacheControl('no-store');
 
         $pages->addPage($page, $route);
     }

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Fixed:** confirmed live -- a category with an active partial-outage announcement and a watching full-outage announcement showed `outage`, not `partial-outage`. A `watching` announcement's own severity should never contribute to the severity-based level at all; only `active` announcements decide it. The `watching` level is now a genuine fallback used only when nothing is confirmed still active.
+- **Fixed:** the public status page sent `Cache-Control: max-age=604800` (Grav core's 7-day default) on every response, since disabling Grav's own server-side render cache (`cache_enable: false`) says nothing about what a browser does with the response. A browser honoring that header serves its own week-old cached copy and never asks the server again -- confirmed as the actual cause of needing a manual cache-clear plus a hard-refresh to see a saved announcement change. Now sends `Cache-Control: no-store`.
+
 - **Added:** a new `watching` status level for the overall banner and category badges. Once every currently-live (non-resolved) announcement affecting a category is specifically in the `watching` state -- none still `active` -- it's shown as `watching` (a new warning color, `--status-watching`) instead of the severity-based outage/partial-outage color. A single still-`active` announcement anywhere in the live set falls straight through to the normal severity-based level, since that means something is confirmed still happening.
 - **Added:** the overall banner's watching and outage messages are now configurable (`banner_message_watching`, `banner_message_outage` in the plugin's config), defaulting to "All systems have recovered and we're actively monitoring the situation." and "Some systems are experiencing an outage." respectively.
 
