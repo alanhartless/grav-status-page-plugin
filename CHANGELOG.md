@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Announcement title made explicitly larger and bolder (1.35rem, weight 700) than the body text below it -- previously relied on `<h3>`'s default styling, which a host theme's own heading resets could (and did) leave no more prominent than body copy.
+
 - **Fixed:** an announcement's title/state row picked up unwanted padding from a host theme's own base styles for the generic `<header>` HTML element. Switched to a plain `<div>` -- a theme-agnostic plugin shouldn't rely on a host theme never styling common semantic tags it happens to reuse for unrelated purposes.
 - **Fixed:** category badges could show a bullet point depending on the host theme's typography/prose styles, which can target `li` directly with a selector specific enough to beat `list-style: none` set only on the parent `<ul>`. Now also set directly on the badge `<li>` itself.
 

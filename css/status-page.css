@@ -188,7 +188,12 @@
 }
 
 .status-announcement__title {
-  font-size: 1.05rem;
+  /* Explicit weight, not just relying on <h3>'s default bold -- a host
+     theme that resets heading font-weight (the same class of collision as
+     the <header>-element padding fix above) would otherwise leave the
+     title no more prominent than the body text below it. */
+  font-size: 1.35rem;
+  font-weight: 700;
   margin: 0;
 }
 
