@@ -11,11 +11,12 @@ use Grav\Common\Grav;
  * `categories` field, plus the dangling-category-key lookup helper used
  * when rendering an announcement's category list.
  *
- * `options()` is the actual `data-options@` entry point -- it requires a
- * live Grav instance with the `status-categories` Flex directory registered,
- * so it is exercised by an Admin2/Flex-API round-trip rather than PHPUnit.
- * `formatOptions()` and `resolveTitles()` are pure functions with no Grav
- * dependency and carry the actual test coverage.
+ * `selectOptions()` is the actual `data-options@` entry point -- it
+ * requires a live Grav instance with the `status-categories` Flex
+ * directory registered, so it is exercised by an Admin2/Flex-API
+ * round-trip rather than PHPUnit. `formatOptions()`, `resolveTitles()`,
+ * and `toSelectOptions()` are pure functions with no Grav dependency and
+ * carry the actual test coverage.
  *
  * Registered as the sole allowed dynamic callable via
  * Blueprint::addAllowedDynamicCallable() in
@@ -25,7 +26,10 @@ use Grav\Common\Grav;
 final class CategoryOptions
 {
     /**
-     * @return array<string, string> key => title, ready for a `select` field's options.
+     * @return array<string, string> key => title -- the shape every other
+     *   internal consumer of this data needs (normalizeToKeys(),
+     *   resolveTitles()). NOT the shape to hand to Admin2 directly for
+     *   rendering -- see selectOptions() for why.
      */
     public static function options(): array
     {
@@ -49,32 +53,45 @@ final class CategoryOptions
     }
 
     /**
-     * EXPERIMENTAL: the same categories as `options()`, but flipped to a
-     * title => key map -- registered as the `categories` field's actual
-     * `data-options@` provider to test a specific theory about Admin2's
-     * dynamic-select behavior. Evidence so far: picking a fresh category
-     * from the dropdown submits the array's *value* (confirmed -- this is
-     * exactly why `CategoryOptions::normalizeToKeys()` had to exist at all,
-     * since the submitted value was the title, not the `options()` map's
-     * key), and an already-stored *key* value fails to resolve to a label
-     * when the edit form hydrates, as if Admin2 never consults the array's
-     * key for display at all -- only its value, treated as both the
-     * submitted value and the shown label. If that theory holds, flipping
-     * to title => key makes the array's value the real key, which should
-     * make a fresh pick submit real keys directly (no more reliance on
-     * `normalizeToKeys()`), and should make an existing stored key
-     * exact-match the option list on hydration. The expected trade-off:
-     * the dropdown list and any chip would then display the raw key
-     * ("application") instead of the friendly title ("Application")
-     * everywhere, since the theory holds Admin2 never displays the array's
-     * key. Revert to `options()` if this doesn't hold up under live
-     * testing, or if the always-shows-the-key trade-off isn't worth it.
+     * The actual `data-options@` entry point for the `categories` field.
+     * Root cause, confirmed by reading `admin2.php`'s own
+     * `onApiBlueprintResolved()`: Admin2's select field expects `options`
+     * as an ordered array of `{value, label}` objects -- admin2's own
+     * comment there says so explicitly ("emit the post-serialization
+     * shape -- options as an ordered array of {value, label} objects
+     * rather than the YAML-blueprint map form"). A `data-options@`
+     * callable returning a plain `key => title` map (this class's
+     * `options()`, matching Grav core's own documented convention, e.g.
+     * `UserGroupObject::groupNames()`) produces exactly the wrong shape
+     * for Admin2's client to resolve a label from an already-selected
+     * value against -- explaining both confirmed symptoms: the dropdown
+     * list rendering by coincidence (a plain object still iterates into
+     * readable entries) while resolving a stored value's label on edit
+     * silently fails (nothing there to `.find(o => o.value === x)`
+     * against).
      *
-     * @return array<string, string> title => key.
+     * @return list<array{value: string, label: string}>
      */
-    public static function optionsByTitle(): array
+    public static function selectOptions(): array
     {
-        return array_flip(self::options());
+        return self::toSelectOptions(self::options());
+    }
+
+    /**
+     * Pure: converts a key => title map into Admin2's expected
+     * `{value, label}` array shape.
+     *
+     * @param array<string, string> $keyTitleMap
+     * @return list<array{value: string, label: string}>
+     */
+    public static function toSelectOptions(array $keyTitleMap): array
+    {
+        $options = [];
+        foreach ($keyTitleMap as $key => $title) {
+            $options[] = ['value' => (string) $key, 'label' => (string) $title];
+        }
+
+        return $options;
     }
 
     /**

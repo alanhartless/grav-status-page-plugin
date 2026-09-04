@@ -129,22 +129,19 @@ form:
       size: large
       label: Categories
       classes: fancy
-      # TRIED AND CONFIRMED NOT THE CAUSE: removing `classes: fancy`
-      # entirely (expecting Admin2 to fall back to a native multi-select)
-      # had zero visible effect on a live install with the change correctly
-      # deployed -- confirmed via the checked-out commit hash and the raw
-      # file content. This admin build's chip/tag rendering for
-      # `type: select, multiple: true` is not controlled by this class hint
-      # at all, so don't retry this exact experiment. Known, separate cosmetic
-      # issue this doesn't fix: an existing announcement's selected-category
-      # chips show the raw key instead of the resolved title on edit, even
-      # though the stored value, the dropdown's own labels, and a
-      # freshly-picked chip in the same session are all correct.
+      # Root cause of a real bug, confirmed by reading admin2.php's own
+      # source: Admin2's select field expects `options` as an ordered array
+      # of `{value, label}` objects, not the `key => title` map Grav core's
+      # own documented data-options@ convention produces (e.g.
+      # UserGroupObject::groupNames()). The wrong shape happened to still
+      # produce a readable dropdown list, but silently broke resolving an
+      # already-selected value's label on edit -- see
+      # CategoryOptions::selectOptions() for the full finding and the fix.
       # Dynamic option provider -- registered via
       # Blueprint::addAllowedDynamicCallable() in
       # StatusPagePlugin::onPluginsInitialized(), otherwise Grav's dynamic-
       # callable allowlist (GHSA-fj2p-qj2f-74v5) silently returns no options.
-      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::optionsByTitle'
+      data-options@: 'Grav\Plugin\StatusPage\CategoryOptions::selectOptions'
       # `commalist` (a comma-separated-string validator, meant for a plain
       # text/tag field) was the wrong type for a keyed multi-select and is
       # the confirmed root cause of a real bug: submitted through Admin2,
