@@ -18,28 +18,30 @@
         </span>
     </header>
 
-    {% if announcement.categoryTitles is not empty %}
-        <ul class="status-announcement__categories" aria-label="Affected categories">
-            {% for title in announcement.categoryTitles %}
-                <li class="status-announcement__category-badge">{{ title }}</li>
-            {% endfor %}
-        </ul>
+    {% if announcement.categoryTitles is not empty or announcement.severity != 'none' %}
+        <div class="status-announcement__meta">
+            {% if announcement.categoryTitles is not empty %}
+                <ul class="status-announcement__categories" aria-label="Affected categories">
+                    {% for title in announcement.categoryTitles %}
+                        <li class="status-announcement__category-badge">{{ title }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if announcement.severity != 'none' %}
+                <span class="status-announcement__severity-badge status-announcement__severity-badge--{{ announcement.severity }}">
+                    {{ announcement.severity|replace({'-': ' '})|capitalize }}
+                </span>
+            {% endif %}
+        </div>
     {% endif %}
 
-    <div class="status-announcement__meta">
-        <p class="status-announcement__dates">
-            {% if announcement.ended_at %}
-                {{ announcement.started_at|date('M j, Y g:ia') }} to {{ announcement.ended_at|date('M j, Y g:ia') }}
-            {% else %}
-                Started {{ announcement.started_at|date('M j, Y g:ia') }}
-            {% endif %}
-        </p>
-        {% if announcement.severity != 'none' %}
-            <span class="status-announcement__severity-badge status-announcement__severity-badge--{{ announcement.severity }}">
-                {{ announcement.severity|replace({'-': ' '})|capitalize }}
-            </span>
+    <p class="status-announcement__dates">
+        {% if announcement.ended_at %}
+            {{ announcement.started_at|date('M j, Y g:ia') }} to {{ announcement.ended_at|date('M j, Y g:ia') }}
+        {% else %}
+            Started {{ announcement.started_at|date('M j, Y g:ia') }}
         {% endif %}
-    </div>
+    </p>
 
     {% if announcement.body %}
         <div class="status-announcement__body">

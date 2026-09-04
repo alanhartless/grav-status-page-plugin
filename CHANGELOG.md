@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Announcement severity badge moved back to sharing a row with the category badges (categories left, severity right), instead of sharing a row with the dates. Dates are their own line again.
+
 - **Fixed:** every status color (banner, category badges, the daily history strip, announcement badges) rendered with no color at all -- devtools reported every `--status-*` custom property as undefined, even with a host theme's `:root` mapping active. Root cause: `.status-page { --status-operational: var(--status-operational, #hex); ... }` is a CSS custom-property self-reference cycle, invalid at computed-value time per spec -- it does not fall through to an ancestor's value, it's just broken. Fixed by removing the redeclaration entirely and moving the fallback onto every `var()` call site that actually consumes each color, the standard pattern for "plugin ships a default, host overrides via the same custom property name."
 
 - **Fixed:** resolving an outage/partial-outage announcement left the overall banner and its category's status badge stuck on the old severity until midnight. Root cause: both were reusing the day-by-day history strip's *today* cell, which is (correctly) a permanent per-day record -- a day that had an outage stays marked as having had one even after it's resolved later the same day. The banner and category badge now use a new, separate live-status check (`StatusProjector::liveStatus()`): the worst severity among announcements that are still actually `active`/`watching`, right now. The history strip's per-day record is unaffected.
