@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Fixed:** the `categories` field on an announcement now correctly stores category keys instead of display titles. Previously validated as `commalist` (meant for a plain comma-separated text field); a `type: select, multiple: true` field needs `array`. This silently broke every key-based lookup downstream -- an active outage never colored its category or the overall banner, and the category badge never appeared. **Any announcement saved before this fix needs its Categories field re-selected once** to correct the stored value.
 - `window_days` capped at 365 (was 3650).
 - Editing an existing category now correctly prepopulates the Key field.
 - An announcement's categories render as badges under the title, instead of a plain comma-separated line.
