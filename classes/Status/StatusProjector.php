@@ -1,0 +1,216 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Grav\Plugin\StatusPage\Status;
+
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
+
+/**
+ * Pure, framework-free projection of a category's current status, its
+ * day-by-day history strip, and its uptime percentage, derived entirely from
+ * a flat list of announcement arrays. No stored daily record, no stored
+ * current-status field, no manual override (EPIC-205 decision D6): every
+ * value here is recomputed from announcements on every call.
+ *
+ * Input announcements are plain arrays shaped like:
+ *   state:       'active'|'watching'|'resolved'
+ *   severity:    'none'|'partial-outage'|'outage'
+ *   categories:  list<string>
+ *   started_at:  string (parseable by DateTimeImmutable in $timezone) | int (unix timestamp)
+ *   ended_at:    string|int|null
+ *   updated_at:  string|int -- the announcement's own last-modified moment.
+ *                Only consulted when state is 'resolved' and ended_at is
+ *                null (see activeInterval()); irrelevant otherwise.
+ *
+ * `FlexAnnouncementAdapter` is the only piece of this epic that converts
+ * real Flex objects into this shape -- this class never touches Flex, the
+ * Grav container, or the filesystem.
+ */
+final class StatusProjector
+{
+    private const LEVEL_OPERATIONAL = 'operational';
+    private const LEVEL_PARTIAL_OUTAGE = 'partial-outage';
+    private const LEVEL_OUTAGE = 'outage';
+
+    private const RANK_OPERATIONAL = 0;
+    private const RANK_PARTIAL_OUTAGE = 1;
+    private const RANK_OUTAGE = 2;
+
+    /** Severity string -> rank. Only the two severities that feed FR-4 are
+     *  present here; 'none' (and anything unrecognized) is looked up as
+     *  missing and skipped -- see project(). */
+    private const SEVERITY_RANK = [
+        self::LEVEL_PARTIAL_OUTAGE => self::RANK_PARTIAL_OUTAGE,
+        self::LEVEL_OUTAGE => self::RANK_OUTAGE,
+    ];
+
+    private const LEVEL_BY_RANK = [
+        self::RANK_OPERATIONAL => self::LEVEL_OPERATIONAL,
+        self::RANK_PARTIAL_OUTAGE => self::LEVEL_PARTIAL_OUTAGE,
+        self::RANK_OUTAGE => self::LEVEL_OUTAGE,
+    ];
+
+    /**
+     * @param iterable<array<string, mixed>> $announcements Plain announcement
+     *   arrays, in any order -- iterated exactly once (AC: one pass over the
+     *   announcement set per category, never a nested per-day re-scan).
+     * @param string $categoryKey Only announcements listing this category
+     *   (in their `categories` array) can color a day.
+     * @param DateTimeImmutable $today The "now" moment. Re-interpreted in
+     *   $timezone both to decide which calendar day is "today" (the window's
+     *   right edge) and as "now" for an open-ended active/watching interval.
+     * @param DateTimeZone $timezone The single source of "which day is it"
+     *   for this call -- callers resolve plugin config / Grav's
+     *   system.timezone / UTC fallback before calling in (that resolution is
+     *   the adapter's job, not this class's).
+     * @param int $windowDays Window length in days, config-driven (default
+     *   90 at the plugin level) -- never hardcoded here.
+     * @param float $partialWeight 0..1, config-driven (default 0.5 at the
+     *   plugin level) -- never hardcoded here.
+     */
+    public static function project(
+        iterable $announcements,
+        string $categoryKey,
+        DateTimeImmutable $today,
+        DateTimeZone $timezone,
+        int $windowDays,
+        float $partialWeight
+    ): StatusProjection {
+        if ($windowDays < 1) {
+            throw new InvalidArgumentException('windowDays must be at least 1.');
+        }
+
+        $now = $today->setTimezone($timezone);
+        $todayStart = self::startOfDay($now);
+        $windowStart = $todayStart->modify('-' . ($windowDays - 1) . ' days');
+
+        /** @var list<int> $ranks Index 0 = windowStart's day, last index = today. */
+        $ranks = array_fill(0, $windowDays, self::RANK_OPERATIONAL);
+
+        // Single pass over the announcement set -- each announcement updates
+        // only the (typically few) day slots its own interval clamps to,
+        // never a day-major loop that re-scans the whole announcement list.
+        foreach ($announcements as $announcement) {
+            $severity = (string) ($announcement['severity'] ?? 'none');
+            $rank = self::SEVERITY_RANK[$severity] ?? null;
+            if ($rank === null) {
+                continue;
+            }
+
+            $categories = $announcement['categories'] ?? [];
+            if (!is_array($categories) || !in_array($categoryKey, $categories, true)) {
+                continue;
+            }
+
+            [$start, $end] = self::activeInterval($announcement, $now, $timezone);
+
+            $firstDayIndex = self::calendarDayIndex($windowStart, $start);
+            $lastDayIndex = self::calendarDayIndex($windowStart, $end);
+
+            if ($lastDayIndex < 0 || $firstDayIndex > $windowDays - 1) {
+                continue; // No overlap with the window at all.
+            }
+
+            $from = max(0, $firstDayIndex);
+            $to = min($windowDays - 1, $lastDayIndex);
+
+            for ($i = $from; $i <= $to; $i++) {
+                if ($rank > $ranks[$i]) {
+                    $ranks[$i] = $rank;
+                }
+            }
+        }
+
+        $days = [];
+        $outageDays = 0;
+        $partialDays = 0;
+        $date = $windowStart;
+
+        foreach ($ranks as $rank) {
+            $days[] = [
+                'date' => $date->format('Y-m-d'),
+                'level' => self::LEVEL_BY_RANK[$rank],
+            ];
+
+            if ($rank === self::RANK_OUTAGE) {
+                $outageDays++;
+            } elseif ($rank === self::RANK_PARTIAL_OUTAGE) {
+                $partialDays++;
+            }
+
+            $date = $date->modify('+1 day');
+        }
+
+        $uptime = ($windowDays - $outageDays - $partialWeight * $partialDays) / $windowDays;
+        $current = $days[array_key_last($days)]['level'];
+
+        return new StatusProjection($current, $days, $uptime);
+    }
+
+    /**
+     * An announcement's active interval is [started_at, ended_at] (closed
+     * both ends). Null ended_at means different things depending on state:
+     *
+     *  - active/watching: still ongoing -- the interval runs to "now".
+     *  - resolved: D9 -- ends at the announcement's own last-modified
+     *    moment (updated_at), NEVER open-ended. Without this rule one
+     *    mis-authored record with no ended_at would paint every day since
+     *    red, forever.
+     *
+     * @param array<string, mixed> $announcement
+     * @return array{0: DateTimeImmutable, 1: DateTimeImmutable} [start, end]
+     */
+    private static function activeInterval(
+        array $announcement,
+        DateTimeImmutable $now,
+        DateTimeZone $timezone
+    ): array {
+        $start = self::parseMoment($announcement['started_at'], $timezone);
+
+        $endedAt = $announcement['ended_at'] ?? null;
+        if ($endedAt !== null && $endedAt !== '') {
+            $end = self::parseMoment($endedAt, $timezone);
+        } elseif (($announcement['state'] ?? null) === 'resolved') {
+            $end = self::parseMoment($announcement['updated_at'], $timezone);
+        } else {
+            $end = $now;
+        }
+
+        return [$start, $end];
+    }
+
+    private static function parseMoment(int|string $value, DateTimeZone $timezone): DateTimeImmutable
+    {
+        if (is_int($value)) {
+            $moment = new DateTimeImmutable('@' . $value);
+        } else {
+            $moment = new DateTimeImmutable($value, $timezone);
+        }
+
+        return $moment->setTimezone($timezone);
+    }
+
+    private static function startOfDay(DateTimeImmutable $moment): DateTimeImmutable
+    {
+        return $moment->setTime(0, 0, 0, 0);
+    }
+
+    /**
+     * Signed number of calendar days between $windowStart (already a
+     * start-of-day moment) and $moment's own calendar day, in $windowStart's
+     * timezone. Computed via DateTimeImmutable::diff() rather than a fixed
+     * 86400-second division, so a DST transition inside the range never
+     * shifts the result by an hour's worth of a day.
+     */
+    private static function calendarDayIndex(DateTimeImmutable $windowStart, DateTimeImmutable $moment): int
+    {
+        $momentDay = self::startOfDay($moment->setTimezone($windowStart->getTimezone()));
+        $diff = $windowStart->diff($momentDay);
+        $days = (int) $diff->format('%a');
+
+        return $diff->invert ? -$days : $days;
+    }
+}
