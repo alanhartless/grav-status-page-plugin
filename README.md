@@ -49,7 +49,7 @@ needed for any of these to take effect.
 | `window_days` | `90` | Length of the daily history strip, and how far back resolved announcements are shown. |
 | `uptime_partial_weight` | `0.5` | How much a partial-outage day costs against the uptime percentage (`0` = doesn't count, `1` = counts as a full outage day). |
 | `base_template` | *(empty)* | An optional theme Twig partial to extend for header/footer chrome. Leave empty for a self-contained standalone page. |
-| `timezone` | *(empty)* | An explicit PHP timezone identifier. Leave empty to use Grav's own `system.timezone`, falling back to UTC. |
+| `timezone` | *(empty)* | An explicit PHP timezone identifier. Leave empty to use Grav's own `system.timezone`, falling back to UTC. Used both for "which calendar day is today" on the history strip and as the timezone an admin's entered `started_at`/`ended_at` is interpreted in -- see "Timestamps and timezones" below. |
 
 ## Data model
 
@@ -82,8 +82,29 @@ categories.
 | `state` | select: `active` / `watching` / `resolved` | yes | Defaults to `active`. |
 | `severity` | select: `none` / `partial-outage` / `outage` | yes | Defaults to `none`. `none` is a deliberate, valid choice for a maintenance notice or informational post -- it colors no day on the history strip. Only `partial-outage` and `outage` count against uptime. |
 | `categories` | multi-select | yes, at least one | Options are populated dynamically from the categories that currently exist. If a referenced category is later deleted, the dangling reference is silently ignored wherever it's rendered rather than causing an error. |
-| `started_at` | datetime | yes | |
-| `ended_at` | datetime | no | Required once `state` is `resolved`. Must not be earlier than `started_at`. Both rules are enforced in code, not only in the Admin form, so they hold for any write path. |
+| `started_at` | datetime | yes | See "Timestamps and timezones" below for how this is stored and displayed. |
+| `ended_at` | datetime | no | Left blank on a `resolved` announcement, this is set to the current moment automatically. Must not be earlier than `started_at` -- enforced in code, not only in the Admin form, so it holds for any write path. |
+
+## Timestamps and timezones
+
+Admin2's datetime field submits a bare string with no timezone info at all
+(e.g. `2026-09-04 13:00`), so the server has no way to know what timezone an
+admin meant unless it's told. `started_at`/`ended_at` are interpreted as
+being in the plugin's own `timezone` config (falling back to
+`system.timezone`, then UTC -- the same setting used for "which calendar
+day is today" on the history strip) and converted to UTC before storage.
+Editing an existing announcement converts back to that same configured
+timezone for display, so an admin always enters and sees times in one
+consistent zone, round-tripping correctly, regardless of what timezone
+their own browser happens to be in.
+
+The public status page is a different, unauthenticated concern: every
+timestamp renders as its stored UTC value in an inert `<time>` element,
+which a small dependency-free script (`js/status-page.js`) reformats to
+each visitor's own browser-local time on load, using `Intl.DateTimeFormat`
+with no explicit timezone (which already defaults to the browser's local
+zone). The server-rendered UTC text is the fallback for a visitor with
+JavaScript disabled.
 
 ## Uptime calculation
 

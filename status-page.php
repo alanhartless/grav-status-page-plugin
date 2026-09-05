@@ -268,5 +268,15 @@ class StatusPagePlugin extends Plugin
         // A host theme overrides them the ordinary CSS way, in its own
         // stylesheet.
         $this->grav['assets']->addCss('plugin://status-page/css/status-page.css');
+
+        // Every timestamp is rendered server-side as its stored UTC value
+        // (a <time data-status-time> element, see partials/status-time.html.twig)
+        // -- this reformats each one to the visitor's own browser-local
+        // time on load. A public status page has no authenticated visitor
+        // whose timezone preference the server could otherwise know, unlike
+        // the admin-side plugins.status-page.timezone setting, which is
+        // deliberately a different, site-operator-facing concept (see
+        // StatusAnnouncementObject's class docblock).
+        $this->grav['assets']->addJs('plugin://status-page/js/status-page.js', ['group' => 'bottom']);
     }
 }

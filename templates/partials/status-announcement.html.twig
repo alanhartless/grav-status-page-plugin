@@ -37,9 +37,9 @@
 
     <p class="status-announcement__dates">
         {% if announcement.ended_at %}
-            {{ announcement.started_at|date('M j, Y g:ia') }} to {{ announcement.ended_at|date('M j, Y g:ia') }}
+            {% include 'partials/status-time.html.twig' with { moment: announcement.started_at } %} to {% include 'partials/status-time.html.twig' with { moment: announcement.ended_at } %}
         {% else %}
-            Started {{ announcement.started_at|date('M j, Y g:ia') }}
+            Started {% include 'partials/status-time.html.twig' with { moment: announcement.started_at } %}
         {% endif %}
     </p>
 

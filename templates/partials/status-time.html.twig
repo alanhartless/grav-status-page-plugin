@@ -1,0 +1,9 @@
+{#
+  Renders a stored UTC moment (e.g. `announcement.started_at`) as a
+  `<time>` element. Its text content is the server-rendered UTC fallback --
+  for no-JS clients and the brief window before the script runs -- and its
+  `datetime` attribute carries the exact ISO value `js/status-page.js`
+  reads on page load to reformat the visible text to each visitor's own
+  browser-local time (`data-status-time` is what that script looks for).
+#}
+<time datetime="{{ moment }}" data-status-time>{{ moment|date('M j, Y g:ia', 'UTC') }} UTC</time>
