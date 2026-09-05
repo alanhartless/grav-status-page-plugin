@@ -180,6 +180,6 @@ form:
     ended_at:
       type: datetime
       label: Ended at
-      help: Required once State is set to Resolved. Must not be earlier than Started at.
+      help: Left blank on a Resolved announcement, this is set to the current moment automatically. Must not be earlier than Started at.
       validate:
         required: false

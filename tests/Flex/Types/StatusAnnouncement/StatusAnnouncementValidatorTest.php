@@ -29,33 +29,18 @@ final class StatusAnnouncementValidatorTest extends TestCase
     }
 
     #[Test]
-    public function resolved_without_ended_at_is_rejected(): void
+    public function resolved_without_ended_at_passes(): void
     {
+        // No longer rejected here -- StatusAnnouncementObject auto-fills
+        // ended_at before this validator ever sees a resolved announcement
+        // missing one. This validator only checks ordering.
         $errors = StatusAnnouncementValidator::validate([
             'state' => 'resolved',
             'started_at' => '2026-09-01 10:00',
             'ended_at' => null,
         ]);
 
-        self::assertSame(
-            [StatusAnnouncementValidator::ERROR_ENDED_AT_REQUIRED_WHEN_RESOLVED],
-            $errors
-        );
-    }
-
-    #[Test]
-    public function resolved_with_empty_string_ended_at_is_rejected(): void
-    {
-        $errors = StatusAnnouncementValidator::validate([
-            'state' => 'resolved',
-            'started_at' => '2026-09-01 10:00',
-            'ended_at' => '',
-        ]);
-
-        self::assertSame(
-            [StatusAnnouncementValidator::ERROR_ENDED_AT_REQUIRED_WHEN_RESOLVED],
-            $errors
-        );
+        self::assertSame([], $errors);
     }
 
     #[Test]

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Changed:** marking an announcement `resolved` with no `ended_at` no longer rejects the save with a 422. Confirmed live: Admin2's edit-save error handler discards the actual validation message for anything other than a 409 conflict, always showing a generic "Failed to save." toast instead -- and there's no cross-field "required when sibling field equals X" mechanism in this Admin2 build to instead prevent the submission client-side (Grav core's `condition:` blueprint property is config-based only, never tied to another field's live value). With no way to explain the failure and no way to prevent it up front, `ended_at` now auto-fills with the current moment when left blank on a `resolved` announcement, on both create and edit. Explicitly setting an `ended_at` earlier than `started_at` is still rejected.
+
 - **Fixed:** confirmed live -- a category with an active partial-outage announcement and a watching full-outage announcement showed `outage`, not `partial-outage`. A `watching` announcement's own severity should never contribute to the severity-based level at all; only `active` announcements decide it. The `watching` level is now a genuine fallback used only when nothing is confirmed still active.
 - **Fixed:** the public status page sent `Cache-Control: max-age=604800` (Grav core's 7-day default) on every response, since disabling Grav's own server-side render cache (`cache_enable: false`) says nothing about what a browser does with the response. A browser honoring that header serves its own week-old cached copy and never asks the server again -- confirmed as the actual cause of needing a manual cache-clear plus a hard-refresh to see a saved announcement change. Now sends `Cache-Control: no-store`.
 

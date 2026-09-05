@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Grav\Plugin\StatusPage\Flex\Types\StatusAnnouncement;
 
+use DateTimeImmutable;
 use Grav\Common\Data\ValidationException;
 use Grav\Common\Flex\FlexObject;
+use Grav\Common\Grav;
 use Grav\Framework\Flex\FlexDirectory;
 use Grav\Plugin\StatusPage\CategoryOptions;
+use Grav\Plugin\StatusPage\Status\TimezoneResolver;
 
 /**
  * An incident, maintenance, or informational post scoped to one or more
@@ -42,6 +45,10 @@ class StatusAnnouncementObject extends FlexObject
      * announcement's in-memory value on next read, with no explicit
      * re-save required.
      *
+     * Also auto-fills `ended_at` with the current moment when an
+     * announcement is created directly as `resolved` with no `ended_at` --
+     * see `update()`'s docblock for why.
+     *
      * {@inheritdoc}
      */
     public function __construct(array $elements, $key, FlexDirectory $_flexDirectory, bool $validate = false)
@@ -50,16 +57,35 @@ class StatusAnnouncementObject extends FlexObject
             $elements['categories'] = CategoryOptions::normalizeToKeys($elements['categories'], CategoryOptions::options());
         }
 
+        if (($elements['state'] ?? null) === 'resolved' && empty($elements['ended_at'] ?? null)) {
+            $elements['ended_at'] = self::nowString();
+        }
+
         parent::__construct($elements, $key, $_flexDirectory, $validate);
     }
 
     /**
      * Enforces the cross-field validation rules that the Admin2 form's
-     * per-field `validate:` block cannot express on its own: `ended_at` is
-     * required once `state` is `resolved`, and `ended_at` must not be
-     * earlier than `started_at`. Runs on every write
+     * per-field `validate:` block cannot express on its own: `ended_at`
+     * must not be earlier than `started_at`. Runs on every write
      * path -- Admin2, the Flex API, or direct Flex object usage -- not only
      * the admin form.
+     *
+     * `ended_at` being required once `state` is `resolved` used to be
+     * enforced the same way (reject the write with a validation error), but
+     * that produced a real, confirmed-bad UX: Admin2's edit-save error
+     * handler discards the actual validation message for anything other
+     * than a 409 conflict (`Yp()`'s update-page save handler in admin2's
+     * compiled bundle only special-cases 409; everything else, including
+     * ours, shows a hardcoded generic "Failed to save." toast) -- and there
+     * is no cross-field "required when sibling field equals X" mechanism in
+     * this Admin2 build to instead prevent the submission client-side in
+     * the first place (checked: Grav core's own `condition:` blueprint
+     * property is config-based only, never tied to another field's live
+     * value). With no way to surface *why* the save failed and no way to
+     * stop it before it's attempted, rejecting the write was a dead end --
+     * marking something resolved with no explicit end date now means "it
+     * just ended, right now" instead.
      *
      * Also canonicalizes `categories` to machine keys before anything else
      * sees it -- see CategoryOptions::normalizeToKeys() for why this is
@@ -76,12 +102,36 @@ class StatusAnnouncementObject extends FlexObject
 
         $merged = $this->getBlueprint()->mergeData($this->getElements(), $data);
 
+        if (($merged['state'] ?? null) === 'resolved' && empty($merged['ended_at'] ?? null)) {
+            $data['ended_at'] = self::nowString();
+            $merged = $this->getBlueprint()->mergeData($this->getElements(), $data);
+        }
+
         $errors = StatusAnnouncementValidator::validate($merged);
         if ($errors) {
             throw new ValidationException(implode(' ', $errors));
         }
 
         return parent::update($data, $files);
+    }
+
+    /**
+     * "Now," formatted for storage in the same shape `started_at`/
+     * `ended_at` already use, resolved in the same timezone the rest of
+     * this plugin uses for "which moment is now" (`TimezoneResolver`,
+     * matching `StatusPagePresenter`'s own resolution of
+     * `plugins.status-page.timezone` -> `system.timezone` -> UTC) rather
+     * than the server's raw default timezone.
+     */
+    private static function nowString(): string
+    {
+        $config = Grav::instance()['config'];
+        $timezone = TimezoneResolver::resolve(
+            (string) $config->get('plugins.status-page.timezone', ''),
+            (string) $config->get('system.timezone', '')
+        );
+
+        return (new DateTimeImmutable('now', $timezone))->format('Y-m-d\TH:i:s');
     }
 
     /**
