@@ -49,7 +49,7 @@ needed for any of these to take effect.
 | `window_days` | `90` | Length of the daily history strip, and how far back resolved announcements are shown. |
 | `uptime_partial_weight` | `0.5` | How much a partial-outage day costs against the uptime percentage (`0` = doesn't count, `1` = counts as a full outage day). |
 | `base_template` | *(empty)* | An optional theme Twig partial to extend for header/footer chrome. Leave empty for a self-contained standalone page. |
-| `timezone` | *(empty)* | An explicit PHP timezone identifier. Leave empty to use Grav's own `system.timezone`, falling back to UTC. Used both for "which calendar day is today" on the history strip and as the timezone an admin's entered `started_at`/`ended_at` is interpreted in -- see "Timestamps and timezones" below. |
+| `timezone` | *(Default)* | A timezone, picked from a dropdown (`Grav\Common\Utils::timezones()`, the same provider Grav core uses for its own `system.timezone` setting). Leave as Default to use Grav's own `system.timezone`, falling back to UTC. Used both for "which calendar day is today" on the history strip and as the timezone an admin's entered `started_at`/`ended_at` is interpreted in -- see "Timestamps and timezones" below. |
 
 ## Data model
 

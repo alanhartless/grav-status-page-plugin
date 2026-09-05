@@ -92,7 +92,17 @@ form:
       default: ''
 
     timezone:
-      type: text
+      type: select
       label: Timezone
-      help: Optional explicit PHP timezone identifier. Leave empty to use Grav's system.timezone, then UTC.
+      size: medium
+      classes: fancy
+      help: Also the timezone an admin's entered started_at/ended_at is interpreted in. Leave as Default to use Grav's system.timezone, then UTC.
+      # Grav core's own dynamic option provider for its own equivalent
+      # system.timezone setting (system/blueprints/config/system.yaml) --
+      # already in Blueprint's default dynamic-callable allowlist
+      # (GHSA-fj2p-qj2f-74v5), so no addAllowedDynamicCallable() call is
+      # needed for this one.
+      data-options@: '\Grav\Common\Utils::timezones'
       default: ''
+      options:
+        '': 'Default (system.timezone, then UTC)'
